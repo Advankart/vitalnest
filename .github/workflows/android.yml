@@ -42,6 +42,12 @@ jobs:
       - name: Copy web app into Android project
         run: npx cap sync android
 
+      - name: Add Firebase config (push notifications)
+        env:
+          GSJ: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GSJ" ]; then printf '%s' "$GSJ" > android/app/google-services.json; echo "google-services.json added"; else echo "::warning::GOOGLE_SERVICES_JSON secret not set — family push alerts disabled in this APK"; fi
+
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
