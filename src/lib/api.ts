@@ -5,8 +5,11 @@ import { demoApi } from './demo';
 /* ------------------------------------------------------------------ */
 /*  Configuration                                                      */
 /* ------------------------------------------------------------------ */
-const ENV_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const ENV_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+// Keys must be plain ASCII. A key copied from a shortened display (e.g. ending in "…") is unusable,
+// so treat it as missing rather than crashing every request.
+const clean = (v?: string) => { const t = (v ?? '').trim(); return t && /^[\x21-\x7E]+$/.test(t) ? t : undefined; };
+const ENV_URL = clean(import.meta.env.VITE_SUPABASE_URL as string | undefined);
+const ENV_KEY = clean(import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined);
 
 function safeGet(k: string) { try { return localStorage.getItem(k); } catch { return null; } }
 function safeSet(k: string, v: string | null) { try { v === null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch { /* ignore */ } }
@@ -17,7 +20,7 @@ export function getServerConfig(): { url: string; key: string } | null {
   if (raw) { try { const c = JSON.parse(raw); if (c.url && c.key) return c; } catch { /* ignore */ } }
   return null;
 }
-export function setServerConfig(url: string, key: string) { safeSet('vn_server', JSON.stringify({ url: url.trim(), key: key.trim() })); }
+export function setServerConfig(url: string, key: string) { safeSet('vn_server', JSON.stringify({ url: url.trim(), key: key.replace(/[^\x21-\x7E]/g, '') })); }
 export const hasBuiltInServer = !!(ENV_URL && ENV_KEY);
 export function isDemo() { return safeGet('vn_demo') === '1' || !getServerConfig(); }
 export function setDemo(on: boolean) { safeSet('vn_demo', on ? '1' : null); }
