@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { nativeBuild } from '../lib/update';
 import { stopPush } from '../lib/push';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
@@ -20,6 +21,8 @@ export default function More() {
   const [theme, setT] = useState<Theme>(getTheme());
   const [ts, setTs] = useState<TextSize>(getTextSize());
   const [pwOpen, setPwOpen] = useState(false);
+  const [appBuild, setAppBuild] = useState<number | null>(null);
+  useEffect(() => { nativeBuild().then(setAppBuild); }, []);
   const [pw, setPw] = useState('');
   const demo = isDemo();
 
@@ -89,7 +92,7 @@ export default function More() {
       </div>
       <p className="mt-6 flex gap-2 px-1 text-[0.7188rem] leading-relaxed text-slate-400"><Info className="h-4 w-4 shrink-0" />VitalNest is a personal record-keeping tool. Ranges and tips follow common guidelines and are not a diagnosis. Always follow your doctor's advice; in an emergency call 108 / 112.</p>
       <div className="mt-6 pb-2 text-center">
-        <div className="text-[0.75rem] text-slate-400">VitalNest · version {__APP_VERSION__}</div>
+        <div className="text-[0.75rem] text-slate-400">VitalNest · version {__APP_VERSION__}{appBuild ? ` · app 1.0.${appBuild}` : ''}</div>
         <div className="mt-1 text-[0.8125rem] text-slate-500 dark:text-slate-400">
           Developed by <a href="https://www.advankart.com" target="_blank" rel="noopener" onClick={openAdvankart} className="font-semibold text-brand-700 underline-offset-2 hover:underline dark:text-brand-300">Advankart Solutions</a>
         </div>

@@ -6,6 +6,7 @@ import { Avatar, Sheet, cx } from './ui';
 import { CONDITIONS, VITALS, vitalsFor } from '../lib/health';
 import type { VitalKind } from '../lib/types';
 import { onDue } from '../lib/notify';
+import { UpdateBanner } from './UpdateBanner';
 
 export function VitalIcon({ kind, className = 'h-5 w-5' }: { kind: string; className?: string }) {
   const I = ({ glucose: Droplet, bp: Gauge, heart_rate: HeartPulse, weight: Scale, spo2: Wind, temperature: Thermometer, hba1c: FlaskConical, water: Droplets } as Record<string, typeof Droplet>)[kind] ?? Activity;
@@ -110,6 +111,7 @@ export default function Layout() {
           </div>
         </header>
       )}
+      {isHome && <UpdateBanner />}
       <main className={cx('px-4 pb-32', !isHome && 'safe-top pt-3')}>
         <Outlet />
       </main>

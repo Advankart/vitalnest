@@ -92,7 +92,7 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
   }, [open, onClose]);
   if (!open) return null;
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px]" onClick={onClose} />
       <div className="sheet-in safe-bottom relative max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-[28px] bg-white p-5 pb-6 dark:bg-night-2 sm:rounded-[28px]">
         <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-slate-200 dark:bg-white/10 sm:hidden" />
