@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Eye, EyeOff, HeartPulse, ShieldCheck, Users, BellRing, Server } from 'lucide-react';
+import { Eye, EyeOff, HeartPulse, ShieldCheck, Users, BellRing, Server, Smartphone } from 'lucide-react';
+import { isNative } from '../lib/notify';
 import { api, getServerConfig, hasBuiltInServer, resetApi, setDemo, setServerConfig, isDemo } from '../lib/api';
 import { useApp } from '../lib/store';
 import { Button, Field, Segmented, Sheet } from '../components/ui';
@@ -85,6 +86,9 @@ export default function Auth() {
 
         <div className="mt-5 space-y-2 text-center">
           <button onClick={tryDemo} className="text-sm font-semibold text-brand-700 dark:text-brand-300">Explore with sample data →</button>
+          {!isNative() && (
+            <div><a href="https://github.com/Advankart/vitalnest/releases/latest/download/VitalNest.apk" className="mt-2 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-[13px] font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200 dark:bg-night-2 dark:text-slate-200 dark:ring-white/10"><Smartphone className="h-4 w-4 text-brand-600" />Download Android app</a></div>
+          )}
           {!hasBuiltInServer && (
             <div><button onClick={() => setSrv(true)} className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400"><Server className="h-3.5 w-3.5" />Server settings</button></div>
           )}
