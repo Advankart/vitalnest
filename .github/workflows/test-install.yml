@@ -1,0 +1,41 @@
+name: Test APK install on Android emulators
+
+on:
+  workflow_dispatch:
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        api-level: [33, 34]
+    steps:
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Download latest released APK
+        run: |
+          curl -sSL -o VitalNest.apk https://github.com/${{ github.repository }}/releases/latest/download/VitalNest.apk
+          ls -l VitalNest.apk
+          file VitalNest.apk
+          BT="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
+          "$BT/aapt2" dump badging VitalNest.apk | head -8
+          "$BT/zipalign" -c -v 4 VitalNest.apk | tail -2
+
+      - name: Install and launch on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          script: |
+            adb install -r VitalNest.apk
+            adb shell monkey -p in.advankart.vitalnest -c android.intent.category.LAUNCHER 1
+            sleep 15
+            adb shell pidof in.advankart.vitalnest && echo "APP IS RUNNING"
+            adb logcat -d | grep -iE "AndroidRuntime|FATAL|Capacitor" | tail -40 || true
