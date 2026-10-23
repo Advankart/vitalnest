@@ -20,6 +20,7 @@ interface Ctx {
   membership: Membership | null;
   role: Role;
   patients: Patient[];
+  patientsReady: boolean;
   patient: Patient | null;
   data: PatientData;
   loading: boolean;
@@ -45,6 +46,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [memberships, setMemberships] = useState<Membership[]>([]);
   const [familyId, setFamilyId] = useState<string | null>(get('vn_family'));
   const [patients, setPatients] = useState<Patient[]>([]);
+  const [patientsReady, setPatientsReady] = useState(false);
   const [patientId, setPatientId] = useState<string | null>(get('vn_patient'));
   const [data, setData] = useState<PatientData>(EMPTY);
   const [loading, setLoading] = useState(false);
@@ -89,20 +91,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const role: Role = membership?.role ?? 'viewer';
 
   const refreshPatients = useCallback(async () => {
-    if (!familyId) { setPatients([]); return; }
+    if (!familyId) { setPatients([]); setPatientsReady(true); return; }
     await reloadMemberships();
-    const ps = await api().patients(familyId);
+    const ps = await api().patients(familyId).catch(() => [] as Patient[]);
     setPatients(ps);
+    setPatientsReady(true);
     setPatientId(prev => (prev && ps.some(p => p.id === prev)) ? prev : ps[0]?.id ?? null);
   }, [familyId, reloadMemberships]);
 
-  useEffect(() => { if (familyId) { set('vn_family', familyId); refreshPatients(); } }, [familyId]); // eslint-disable-line
+  // Reload when the family OR the signed-in user changes (the saved family id may be the same
+  // after logging in, so depending on familyId alone left the screen empty until a refresh).
+  useEffect(() => {
+    setPatientsReady(false);
+    if (!user) { setPatients([]); return; }
+    if (familyId) { set('vn_family', familyId); refreshPatients(); }
+  }, [familyId, user?.id]); // eslint-disable-line
   useEffect(() => { if (patientId) set('vn_patient', patientId); }, [patientId]);
 
   const patient = patients.find(p => p.id === patientId) ?? null;
 
   const refreshData = useCallback(async () => {
-    if (!patientId) { setData(EMPTY); return; }
+    if (!patientId || !user) { setData(EMPTY); return; }
     setLoading(true);
     const since = new Date(Date.now() - 366 * 864e5).toISOString();
     const ids = [patientId];
@@ -119,7 +128,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       toast((e as Error).message, 'err');
     } finally { setLoading(false); }
-  }, [patientId, toast]);
+  }, [patientId, user?.id, toast]); // eslint-disable-line
 
   useEffect(() => { refreshData(); }, [refreshData]);
 
@@ -140,12 +149,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const canEdit = role === 'admin' || role === 'caregiver' || (!!patient && patient.linked_user_id === user?.id);
 
   const value = useMemo<Ctx>(() => ({
-    ready, user, memberships, membership, role, patients, patient, data, loading, canEdit,
+    ready, user, memberships, membership, role, patients, patientsReady, patient, data, loading, canEdit,
     selectFamily: (id) => setFamilyId(id),
     selectPatient: (id) => setPatientId(id),
     refreshAuth: async () => { userIdRef.current = '__force'; await refreshAuth(); },
     refreshPatients, refreshData, toast, toasts,
-  }), [ready, user, memberships, membership, role, patients, patient, data, loading, canEdit, refreshAuth, refreshPatients, refreshData, toast, toasts]);
+  }), [ready, user, memberships, membership, role, patients, patientsReady, patient, data, loading, canEdit, refreshAuth, refreshPatients, refreshData, toast, toasts]);
 
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;
 }

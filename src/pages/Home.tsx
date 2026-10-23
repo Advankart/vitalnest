@@ -11,7 +11,7 @@ import { Empty, Ring, Section, Spinner, cx } from '../components/ui';
 import { VitalIcon } from '../components/Layout';
 
 export default function Home() {
-  const { patient, patients, data, loading, canEdit, refreshData, toast, membership } = useApp();
+  const { patient, patients, patientsReady, data, loading, canEdit, refreshData, toast, membership } = useApp();
   const nav = useNavigate();
   const [busyMed, setBusyMed] = useState<string | null>(null);
 
@@ -22,7 +22,7 @@ export default function Home() {
   }, [data.vitals]);
 
   if (!patient) {
-    if (!patients.length && membership) {
+    if (patientsReady && !patients.length && membership) {
       return <div className="pt-6"><Empty icon={<Users className="h-7 w-7" />} title="Add the first person" text="Create a health profile for yourself or a family member to start tracking." action={<Link to="/patients/new?first=1" className="rounded-2xl bg-brand-600 px-5 py-3 font-semibold text-white">Create profile</Link>} /></div>;
     }
     return <Spinner />;
