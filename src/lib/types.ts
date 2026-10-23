@@ -40,6 +40,7 @@ export interface Patient {
   daily_kcal_goal: number;
   daily_water_goal_ml: number;
   color: string;
+  diet_pref?: 'veg' | 'egg' | 'nonveg' | 'jain' | null;
   notes?: string | null;
   created_at?: string;
 }
@@ -88,6 +89,7 @@ export interface Medicine {
   purpose?: string | null;
   composition?: string | null;
   manufacturer?: string | null;
+  photo_path?: string | null;
   notes?: string | null;
   active: boolean;
 }

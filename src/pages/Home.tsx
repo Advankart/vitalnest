@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { formatDistanceToNowStrict, format, isToday } from 'date-fns';
-import { AlertTriangle, Check, ChevronRight, Clock, Droplets, Flame, Pill, Plus, Sparkles, Users } from 'lucide-react';
+import { AlertTriangle, Check, ChevronRight, Clock, Droplets, FileText, Flame, Moon, Pill, Plus, Sparkles, Sun, Sunrise, Users } from 'lucide-react';
 import { Area, AreaChart, ResponsiveContainer, YAxis } from 'recharts';
 import { useApp } from '../lib/store';
 import { toggleDose } from '../lib/actions';
@@ -9,6 +9,14 @@ import { advice, classify, ctxLabel, dayKey, eA1c, fmtVital, hhmm, medsForDate, 
 import type { Vital, VitalKind } from '../lib/types';
 import { Empty, Ring, Section, Spinner, cx } from '../components/ui';
 import { VitalIcon } from '../components/Layout';
+import { MedThumb } from '../components/MedPhoto';
+import { DietCard, MotivationCard } from '../components/AICards';
+
+const PARTS = [
+  { id: 'morning', label: 'Morning', icon: Sunrise, test: (t: string) => t < '12:00', color: 'text-amber-500' },
+  { id: 'afternoon', label: 'Afternoon', icon: Sun, test: (t: string) => t >= '12:00' && t < '17:00', color: 'text-orange-500' },
+  { id: 'night', label: 'Night', icon: Moon, test: (t: string) => t >= '17:00', color: 'text-indigo-500' },
+] as const;
 
 export default function Home() {
   const { patient, patients, patientsReady, data, loading, canEdit, refreshData, toast, membership } = useApp();
@@ -107,6 +115,8 @@ export default function Home() {
         </div>
       </div>
 
+      <MotivationCard latestId={data.vitals[0]?.id} />
+
       {/* Alerts */}
       {critical.slice(0, 2).map(v => {
         const a = advice(v, patient);
@@ -155,32 +165,55 @@ export default function Home() {
         </Link>
       </div>
 
-      {/* Medicines */}
+      {/* Medicines — split into Morning / Afternoon / Night */}
       <Section title="Today's medicines" action={todayMeds.length ? <span className="text-[0.8125rem] font-semibold text-slate-400">{doneCount}/{todayMeds.length} taken</span> : undefined}>
         {todayMeds.length ? (
-          <div className="card divide-y divide-slate-100 overflow-hidden dark:divide-white/5">
-            {todayMeds.map(({ med, time }) => {
-              const done = taken(med.id, time)?.status === 'taken';
-              const overdue = !done && time < hhmm(now);
+          <div className="space-y-3">
+            {PARTS.map(part => {
+              const items = todayMeds.filter(s => part.test(s.time));
+              if (!items.length) return null;
+              const done = items.filter(s => taken(s.med.id, s.time)?.status === 'taken').length;
+              const Icon = part.icon;
               return (
-                <div key={med.id + time} className="flex items-center gap-3 px-4 py-3">
-                  <div className={cx('w-16 shrink-0 text-[0.7812rem] font-semibold', overdue ? 'text-amber-600' : 'text-slate-500')}>{to12h(time)}</div>
-                  <div className="min-w-0 flex-1">
-                    <div className={cx('break-words text-[0.9062rem] font-semibold', done && 'text-slate-400 line-through')}>{med.name} <span className="font-normal text-slate-400">{med.strength}</span></div>
-                    <div className="text-xs text-slate-400">{[med.dose, FOOD_REL[med.food_relation ?? '']].filter(Boolean).join(' · ')}</div>
+                <div key={part.id} className="card overflow-hidden">
+                  <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-2.5 dark:border-white/5">
+                    <Icon className={cx('h-[1.125rem] w-[1.125rem]', part.color)} />
+                    <span className="flex-1 text-[0.875rem] font-bold">{part.label}</span>
+                    <span className={cx('text-[0.75rem] font-semibold', done === items.length ? 'text-brand-600 dark:text-brand-300' : 'text-slate-400')}>{done === items.length ? 'All taken ✓' : `${done}/${items.length}`}</span>
                   </div>
-                  <button onClick={() => toggleMed(med.id, time)} disabled={busyMed === med.id + time} aria-label="Mark taken"
-                    className={cx('grid h-10 w-10 shrink-0 place-items-center rounded-full ring-2 transition active:scale-90', done ? 'bg-brand-600 text-white ring-brand-600' : overdue ? 'text-amber-500 ring-amber-300' : 'text-slate-300 ring-slate-200 dark:ring-white/10')}>
-                    <Check className="h-5 w-5" strokeWidth={3} />
-                  </button>
+                  <div className="divide-y divide-slate-100 dark:divide-white/5">
+                    {items.map(({ med, time }) => {
+                      const isDone = taken(med.id, time)?.status === 'taken';
+                      const overdue = !isDone && time < hhmm(now);
+                      return (
+                        <div key={med.id + time} className="flex items-center gap-3 px-4 py-3">
+                          <MedThumb path={med.photo_path} form={med.form} name={med.name} size="sm" />
+                          <div className="min-w-0 flex-1">
+                            <div className={cx('break-words text-[0.9062rem] font-semibold', isDone && 'text-slate-400 line-through')}>{med.name} <span className="font-normal text-slate-400">{med.strength}</span></div>
+                            <div className={cx('text-xs', overdue ? 'font-semibold text-amber-600' : 'text-slate-400')}>{[to12h(time), med.dose, FOOD_REL[med.food_relation ?? '']].filter(Boolean).join(' · ')}</div>
+                          </div>
+                          <button onClick={() => toggleMed(med.id, time)} disabled={busyMed === med.id + time} aria-label={isDone ? 'Mark not taken' : 'Mark taken'}
+                            className={cx('grid h-10 w-10 shrink-0 place-items-center rounded-full ring-2 transition active:scale-90', isDone ? 'bg-brand-600 text-white ring-brand-600' : overdue ? 'text-amber-500 ring-amber-300' : 'text-slate-300 ring-slate-200 dark:ring-white/10')}>
+                            <Check className="h-5 w-5" strokeWidth={3} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               );
             })}
+            {canEdit && <Link to="/meds?rx=1" className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 py-2.5 text-[0.8125rem] font-semibold text-slate-500 dark:border-white/10"><FileText className="h-4 w-4" />Add medicines from a prescription</Link>}
           </div>
         ) : (
-          <Link to="/meds" className="card flex items-center gap-3 p-4 text-sm text-slate-500"><Pill className="h-5 w-5 text-purple-500" />No medicines scheduled today. Add medicines<ChevronRight className="ml-auto h-4 w-4" /></Link>
+          <div className="space-y-2">
+            <Link to="/meds" className="card flex items-center gap-3 p-4 text-sm text-slate-500"><Pill className="h-5 w-5 text-purple-500" />No medicines scheduled today. Add medicines<ChevronRight className="ml-auto h-4 w-4" /></Link>
+            {canEdit && <Link to="/meds?rx=1" className="card flex items-center gap-3 p-4 text-sm font-semibold text-brand-700 dark:text-brand-300"><FileText className="h-5 w-5" />Add all medicines from a prescription photo<ChevronRight className="ml-auto h-4 w-4" /></Link>}
+          </div>
         )}
       </Section>
+
+      <DietCard />
 
       {/* Upcoming */}
       {nextReminders.length > 0 && (

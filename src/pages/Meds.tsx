@@ -1,14 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { addDays, format, isToday } from 'date-fns';
-import { AlarmClock, Check, ChevronLeft, ChevronRight, Pencil, Pill, Plus, Share2, Syringe, Trash2, X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { AlarmClock, Camera, Check, ChevronLeft, ChevronRight, FileText, Pencil, Pill, Plus, Share2, Trash2, X } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useApp } from '../lib/store';
 import { api } from '../lib/api';
 import { toggleDose } from '../lib/actions';
 import { DAY_SHORT, FOOD_REL, MED_FORMS, dayKey, hhmm, medsForDate, to12h } from '../lib/health';
 import type { Medicine } from '../lib/types';
 import { ScanButton } from '../components/ScanButton';
-import type { MedScan } from '../lib/scan';
+import { toJpegBlob, type MedScan } from '../lib/scan';
+import { MedThumb, PhotoViewer } from '../components/MedPhoto';
+import { PrescriptionImport } from '../components/PrescriptionImport';
 import { Button, Empty, Field, Section, Segmented, Sheet, ViewOnlyNote, cx } from '../components/ui';
 
 const PRESET_TIMES = [['Morning', '08:00'], ['Afternoon', '14:00'], ['Evening', '18:00'], ['Night', '21:00']];
@@ -18,6 +20,11 @@ function MedForm({ med, onClose }: { med: Partial<Medicine> | null; onClose: () 
   const [m, setM] = useState<Partial<Medicine>>(med ?? {});
   const [newTime, setNewTime] = useState('08:00');
   const [busy, setBusy] = useState(false);
+  const [photo, setPhoto] = useState<File | null>(null);          // new photo waiting to be saved
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [viewer, setViewer] = useState(false);
+  const photoIn = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (!photo) { setPhotoUrl(null); return; } const u = URL.createObjectURL(photo); setPhotoUrl(u); return () => URL.revokeObjectURL(u); }, [photo]);
   const up = (k: keyof Medicine, v: unknown) => setM(s => ({ ...s, [k]: v }));
   const times = m.times ?? [], days = m.days ?? [0, 1, 2, 3, 4, 5, 6];
 
@@ -26,7 +33,13 @@ function MedForm({ med, onClose }: { med: Partial<Medicine> | null; onClose: () 
     if (!times.length) { toast('Add at least one time', 'err'); return; }
     setBusy(true);
     try {
-      const row = { ...m, name: m.name.trim(), times: [...times].sort(), days, patient_id: patient!.id, active: m.active ?? true, form: m.form ?? 'tablet', stock: m.stock === undefined || (m.stock as unknown) === '' ? null : Number(m.stock) };
+      let photo_path = m.photo_path ?? null;
+      if (photo) {
+        const newPath = await api().uploadMedPhoto(patient!.id, await toJpegBlob(photo));
+        photo_path = newPath;
+      }
+      const row = { ...m, photo_path, name: m.name.trim(), times: [...times].sort(), days, patient_id: patient!.id, active: m.active ?? true, form: m.form ?? 'tablet', stock: m.stock === undefined || (m.stock as unknown) === '' ? null : Number(m.stock) };
+      if (med?.photo_path && med.photo_path !== photo_path) api().removePhoto(med.photo_path).catch(() => { });
       if (m.id) { const { id, ...rest } = row; await api().update<Medicine>('medicines', id!, rest); }
       else await api().insert<Medicine>('medicines', row);
       await refreshData(); toast('Medicine saved · reminders updated'); onClose();
@@ -40,7 +53,7 @@ function MedForm({ med, onClose }: { med: Partial<Medicine> | null; onClose: () 
   return (
     <div className="space-y-4">
       {!m.id && (
-        <ScanButton<MedScan> kind="medicine" onResult={r => setM(s => ({
+        <ScanButton<MedScan> kind="medicine" onFiles={f => !photo && f[0] && setPhoto(f[0])} onResult={r => setM(s => ({
           ...s,
           name: r.name ?? s.name, strength: r.strength ?? s.strength,
           form: r.form && MED_FORMS.includes(r.form) ? r.form : s.form,
@@ -48,6 +61,21 @@ function MedForm({ med, onClose }: { med: Partial<Medicine> | null; onClose: () 
           purpose: r.purpose ?? s.purpose,
         }))} />
       )}
+      <Field label="Tablet photo" hint="Helps the family recognise the right tablet">
+        <input ref={photoIn} type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) setPhoto(f); e.target.value = ''; }} />
+        <div className="flex items-center gap-3">
+          {photoUrl ? (
+            <button type="button" onClick={() => setViewer(true)} className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl ring-1 ring-slate-900/10"><img src={photoUrl} alt="" className="h-full w-full object-cover" /></button>
+          ) : m.photo_path ? <MedThumb path={m.photo_path} form={m.form} name={m.name} className="!h-16 !w-16" /> : (
+            <div className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl border-2 border-dashed border-slate-200 text-slate-300 dark:border-white/10"><Camera className="h-6 w-6" /></div>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" size="sm" variant="soft" onClick={() => photoIn.current?.click()}><Camera className="h-4 w-4" />{photoUrl || m.photo_path ? 'Change' : 'Take photo'}</Button>
+            {(photoUrl || m.photo_path) && <Button type="button" size="sm" variant="ghost" onClick={() => { setPhoto(null); up('photo_path', null); }}>Remove</Button>}
+          </div>
+        </div>
+        {viewer && photoUrl && <PhotoViewer src={photoUrl} title={m.name} onClose={() => setViewer(false)} />}
+      </Field>
       <Field label="Medicine name"><input className="field" value={m.name ?? ''} onChange={e => up('name', e.target.value)} placeholder="e.g. Metformin" /></Field>
       <Field label="Composition (active ingredients)"><input className="field" value={m.composition ?? ''} onChange={e => up('composition', e.target.value)} placeholder="e.g. Metformin Hydrochloride 500 mg" /></Field>
       <div className="grid grid-cols-2 gap-3">
@@ -99,6 +127,9 @@ export default function Meds() {
   const [tab, setTab] = useState<'schedule' | 'all'>('schedule');
   const [day, setDay] = useState(new Date());
   const [edit, setEdit] = useState<Partial<Medicine> | null | false>(false);
+  const [params, setParams] = useSearchParams();
+  const rxOpen = params.get('rx') === '1';
+  const setRx = (on: boolean) => setParams(p => { const n = new URLSearchParams(p); if (on) n.set('rx', '1'); else n.delete('rx'); return n; }, { replace: !on });
   if (!patient) return null;
 
   const dk = dayKey(day);
@@ -119,6 +150,7 @@ export default function Meds() {
         <div><h1 className="text-[1.5rem] font-extrabold">Medicines</h1><p className="text-[0.8125rem] text-slate-500">{patient.full_name}</p></div>
         <div className="flex gap-2">
           {data.meds.length > 0 && <Button size="sm" variant="soft" onClick={() => nav('/export?only=meds')} aria-label="Share medicines"><Share2 className="h-4 w-4" /></Button>}
+          {canEdit && <Button size="sm" variant="soft" onClick={() => setRx(true)} aria-label="Add from prescription"><FileText className="h-4 w-4" /><span className="lg-hide">Prescription</span></Button>}
           {canEdit && <Button size="sm" onClick={() => setEdit(null)}><Plus className="h-4 w-4" />Add</Button>}
         </div>
       </div>
@@ -138,7 +170,7 @@ export default function Meds() {
             <div className="text-center"><div className="font-bold">{isToday(day) ? 'Today' : format(day, 'EEEE')}</div><div className="text-xs text-slate-400">{format(day, 'd MMMM yyyy')}</div></div>
             <button onClick={() => setDay(addDays(day, 1))} className="grid h-10 w-10 place-items-center rounded-full bg-white shadow-sm dark:bg-night-2" aria-label="Next day"><ChevronRight className="h-5 w-5" /></button>
           </div>
-          {!slots.length && <div className="mt-4"><Empty icon={<Pill className="h-7 w-7" />} title="No medicines scheduled" text="Add medicines with their times — you'll get a reminder on your phone at each time." action={canEdit ? <Button onClick={() => setEdit(null)}><Plus className="h-4 w-4" />Add medicine</Button> : undefined} /></div>}
+          {!slots.length && <div className="mt-4"><Empty icon={<Pill className="h-7 w-7" />} title="No medicines scheduled" text="Add medicines with their times — you'll get a reminder on your phone at each time." action={canEdit ? <div className="flex flex-wrap justify-center gap-2"><Button onClick={() => setRx(true)}><FileText className="h-4 w-4" />From prescription</Button><Button variant="soft" onClick={() => setEdit(null)}><Plus className="h-4 w-4" />Add one</Button></div> : undefined} /></div>}
           <div className="relative mt-4 space-y-4">
             {Object.entries(groups).map(([t, items]) => {
               const past = isToday(day) && t < nowT;
@@ -151,9 +183,7 @@ export default function Meds() {
                       const missed = !done && past;
                       return (
                         <div key={med.id} className={cx('card flex items-center gap-3 p-3.5', missed && 'ring-amber-200 dark:ring-amber-500/30')}>
-                          <div className={cx('lg-hide grid h-11 w-11 shrink-0 place-items-center rounded-2xl', med.form === 'insulin' || med.form === 'injection' ? 'bg-rose-50 text-rose-600 dark:bg-rose-500/10' : 'bg-purple-50 text-purple-600 dark:bg-purple-500/10')}>
-                            {med.form === 'insulin' || med.form === 'injection' ? <Syringe className="h-5 w-5" /> : <Pill className="h-5 w-5" />}
-                          </div>
+                          <MedThumb path={med.photo_path} form={med.form} name={med.name} />
                           <div className="min-w-0 flex-1">
                             <div className={cx('break-words font-semibold', done && 'text-slate-400 line-through')}>{med.name} <span className="text-[0.8125rem] font-normal text-slate-400">{med.strength}</span></div>
                             <div className="text-xs text-slate-500">{[med.dose, FOOD_REL[med.food_relation ?? '']].filter(Boolean).join(' · ')}</div>
@@ -176,8 +206,8 @@ export default function Meds() {
           {!data.meds.length && <Empty icon={<Pill className="h-7 w-7" />} title="No medicines yet" />}
           <div className="space-y-2">
             {data.meds.map(m => (
-              <button key={m.id} onClick={() => canEdit && setEdit(m)} className={cx('card flex w-full items-center gap-3 p-4 text-left', !m.active && 'opacity-50')}>
-                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-purple-50 text-purple-600 dark:bg-purple-500/10">{m.form === 'insulin' ? <Syringe className="h-5 w-5" /> : <Pill className="h-5 w-5" />}</div>
+              <div key={m.id} role="button" tabIndex={0} onClick={() => canEdit && setEdit(m)} className={cx('card flex w-full cursor-pointer items-center gap-3 p-4 text-left', !m.active && 'opacity-50')}>
+                <MedThumb path={m.photo_path} form={m.form} name={m.name} />
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-semibold">{m.name} <span className="text-[0.8125rem] font-normal text-slate-400">{m.strength}</span></div>
                   {m.composition && <div className="truncate text-[0.75rem] text-slate-400">{m.composition}</div>}
@@ -189,12 +219,15 @@ export default function Meds() {
                   </div>
                 </div>
                 {canEdit && <Pencil className="h-4 w-4 text-slate-300" />}
-              </button>
+              </div>
             ))}
           </div>
         </Section>
       )}
 
+      <Sheet open={rxOpen} onClose={() => setRx(false)} title="Add from prescription">
+        {rxOpen && <PrescriptionImport onDone={() => { setRx(false); setTab('all'); }} />}
+      </Sheet>
       <Sheet open={edit !== false} onClose={() => setEdit(false)} title={edit && (edit as Medicine).id ? 'Edit medicine' : 'Add medicine'}>
         {edit !== false && <MedForm med={edit} onClose={() => setEdit(false)} />}
       </Sheet>

@@ -4,7 +4,7 @@ import { cors, userFromToken } from './_lib.js';
 
 export const config = { maxDuration: 60 };
 
-const TOOLS: Record<string, { description: string; schema: any; prompt: string }> = {
+const TOOLS: Record<string, { description: string; schema: any; prompt: string; maxTokens?: number }> = {
   glucose: {
     description: 'Report the blood glucose reading shown on the glucometer display.',
     prompt: `This is a photo of a blood glucose meter (glucometer) screen, usually an Indian brand (Accu-Chek, OneTouch, Dr Morepen, Contour, Sinocare, etc.).
@@ -80,6 +80,55 @@ Only report text you can actually read — use null when not visible. If the com
       required: ['readout', 'found', 'name', 'strength', 'form', 'composition', 'confidence'],
     },
   },
+  prescription: {
+    description: 'Report every medicine written on the doctor prescription with its schedule.',
+    maxTokens: 4000,
+    prompt: `These are photo(s) of a doctor's prescription (printed or handwritten, usually from India). Several photos = several pages of the same prescription.
+Step 1 – in "readout", copy each medicine line as written (e.g. "Tab. Glycomet GP 1  1-0-1  AC  x 30 days").
+Step 2 – return one entry per medicine in "medicines". For each:
+• name: brand name as written, with the prefix removed (Tab./Cap./Inj./Syp.) but keep suffixes (SR, XR, GP 1, 40, Forte…). Correct obvious handwriting misreads only when you are sure of the real Indian brand name.
+• strength: e.g. "500 mg", "40 mg", "100 IU/mL" if written.
+• form: tablet / capsule / insulin / injection / syrup / inhaler / drops / other (from Tab./Cap./Inj. etc.).
+• dose: amount per time, e.g. "1 tablet", "½ tablet", "10 units", "5 ml".
+• slots: which of morning / afternoon / night. Indian notation "1-0-1" = morning + night, "1-1-1" = all three, "0-0-1" = night, "1-0-0" = morning, "½-0-½" likewise. OD = morning (unless HS/night is written), BD/BID = morning + night, TDS/TID = morning + afternoon + night, QID = all three, HS = night. SOS/PRN = as needed → empty slots and as_needed=true.
+• For insulin with different units per time (e.g. "12-0-8 units"), write the units per time in dose, like "12 units morning, 8 units night".
+• food_relation: before_food (AC / before meals), empty_stomach, after_food (PC / after meals), with_food, or any.
+• duration_days: number of days if written ("x 30 days", "1 month" = 30, "continue" = null).
+• notes: anything else for that medicine (e.g. "only if sugar > 250", "alternate days").
+Also return doctor and date if visible. Skip lab tests, advice and diet lines — medicines only.
+Never invent medicines. If a line is hard to read, include your best reading with confidence "low" for that item.`,
+    schema: {
+      type: 'object',
+      properties: {
+        readout: { type: 'string', description: 'Medicine lines as written — BEFORE deciding' },
+        found: { type: 'boolean' },
+        doctor: { type: ['string', 'null'] },
+        date: { type: ['string', 'null'], description: 'Prescription date as written' },
+        medicines: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              strength: { type: ['string', 'null'] },
+              form: { type: 'string', enum: ['tablet', 'capsule', 'insulin', 'injection', 'syrup', 'inhaler', 'drops', 'other'] },
+              dose: { type: ['string', 'null'] },
+              slots: { type: 'array', items: { type: 'string', enum: ['morning', 'afternoon', 'night'] } },
+              as_needed: { type: 'boolean' },
+              food_relation: { type: 'string', enum: ['before_food', 'after_food', 'with_food', 'empty_stomach', 'any'] },
+              duration_days: { type: ['number', 'null'] },
+              notes: { type: ['string', 'null'] },
+              confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
+            },
+            required: ['name', 'form', 'slots', 'food_relation', 'confidence'],
+          },
+        },
+        confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
+        note: { type: 'string' },
+      },
+      required: ['readout', 'found', 'medicines', 'confidence'],
+    },
+  },
 };
 
 const MODELS = [process.env.ANTHROPIC_MODEL, 'claude-opus-4-5', 'claude-sonnet-4-5', 'claude-haiku-4-5'].filter(Boolean) as string[];
@@ -107,6 +156,7 @@ function check(kind: string, o: any) {
     if (o.pulse != null && (o.pulse < 30 || o.pulse > 220)) { o.pulse = null; low('Pulse not clear'); }
   }
   if (kind === 'medicine' && !o.name && !o.composition) o.found = false;
+  if (kind === 'prescription') { o.medicines = (o.medicines || []).filter((m: any) => m?.name); if (!o.medicines.length) o.found = false; }
   return o;
 }
 
@@ -136,7 +186,7 @@ export default async function handler(req: any, res: any) {
       headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({
         model,
-        max_tokens: 1200,
+        max_tokens: tool.maxTokens ?? 1200,
         temperature: 0,
         tools: [{ name: 'report', description: tool.description, input_schema: tool.schema }],
         tool_choice: { type: 'tool', name: 'report' },

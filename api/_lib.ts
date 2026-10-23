@@ -32,3 +32,12 @@ export async function sb<T = any>(path: string, init: RequestInit = {}): Promise
   if (!r.ok) throw new Error(`Supabase ${r.status}: ${text.slice(0, 300)}`);
   return (text ? JSON.parse(text) : null) as T;
 }
+
+/** Supabase REST call made AS the signed-in user (row-level security applies). */
+export async function asUser<T = any>(authHeader: string | undefined, path: string): Promise<T> {
+  const token = (authHeader || '').replace(/^Bearer\s+/i, '').trim();
+  const r = await fetch(`${SB_URL}${path}`, { headers: { apikey: SB_ANON, Authorization: `Bearer ${token}` } });
+  const text = await r.text();
+  if (!r.ok) throw new Error(`Supabase ${r.status}: ${text.slice(0, 200)}`);
+  return (text ? JSON.parse(text) : null) as T;
+}

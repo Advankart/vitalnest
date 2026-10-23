@@ -69,6 +69,9 @@ export interface Api {
   uploadReport(patientId: string, file: File, meta: Partial<Report>): Promise<Report>;
   reportUrl(r: Report): Promise<string>;
   deleteReport(r: Report): Promise<void>;
+  uploadMedPhoto(patientId: string, photo: Blob): Promise<string>;
+  photoUrl(path: string): Promise<string>;
+  removePhoto(path: string): Promise<void>;
 
   subscribe(onChange: () => void): () => void;
 }
@@ -177,6 +180,19 @@ function cloudApi(sb: SupabaseClient): Api {
       await sb.storage.from('reports').remove([r.file_path]);
       check(await sb.from('reports').delete().eq('id', r.id));
     },
+
+    async uploadMedPhoto(pid, photo) {
+      const path = `${pid}/meds/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+      const up = await sb.storage.from('reports').upload(path, photo, { contentType: 'image/jpeg' });
+      if (up.error) throw new Error(friendly(up.error.message));
+      return path;
+    },
+    async photoUrl(path) {
+      const { data, error } = await sb.storage.from('reports').createSignedUrl(path, 60 * 60 * 6);
+      if (error) throw new Error(friendly(error.message));
+      return data.signedUrl;
+    },
+    async removePhoto(path) { await sb.storage.from('reports').remove([path]); },
 
     subscribe(onChange) {
       const ch = sb.channel('vn-live');

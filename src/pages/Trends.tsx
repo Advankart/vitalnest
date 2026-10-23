@@ -7,6 +7,7 @@ import { adherence, eA1c, stats, timeInRange, VITALS, dayKey } from '../lib/heal
 import { BPChart, ContextBars, DailyBars, GlucoseChart, SERIES, SimpleLine, TIRBar } from '../components/Charts';
 import { Segmented } from '../components/ui';
 import { VitalIcon } from '../components/Layout';
+import { TrendsAI } from '../components/TrendsAI';
 
 function Card({ title, kind, right, children }: { title: string; kind?: string; right?: ReactNode; children: ReactNode }) {
   return (
@@ -73,6 +74,7 @@ export default function Trends() {
         <div><h1 className="text-[1.5rem] font-extrabold">Trends</h1><p className="text-[0.8125rem] text-slate-500">{patient.full_name}</p></div>
         <Link to="/export" className="flex items-center gap-1.5 rounded-full bg-brand-600 px-4 py-2 text-[0.8125rem] font-semibold text-white shadow-md"><Share2 className="h-4 w-4" />Share</Link>
       </div>
+      <TrendsAI />
       <Segmented value={range} onChange={setRange} options={[{ id: '7', label: '7 days' }, { id: '30', label: '30 days' }, { id: '90', label: '3 months' }, { id: '365', label: '1 year' }]} />
 
       <Card title="Blood sugar" kind="glucose" right={<Delta now={gs.avg} prev={gp.avg} />}>

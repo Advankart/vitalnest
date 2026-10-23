@@ -199,6 +199,14 @@ export function demoApi(): Api {
     async reportUrl(r) { const u = load().files[r.file_path]; if (!u) throw new Error('In demo mode only files under 1.5 MB are kept.'); return u; },
     async deleteReport(r) { const db = load(); delete db.files[r.file_path]; db.tables.reports = db.tables.reports.filter(x => x.id !== r.id); save(); },
 
+    async uploadMedPhoto(pid, photo) {
+      const db = load(); const path = `${pid}/meds/${Date.now()}.jpg`;
+      db.files[path] = await new Promise<string>(res => { const fr = new FileReader(); fr.onload = () => res(fr.result as string); fr.readAsDataURL(photo); });
+      save(); return path;
+    },
+    async photoUrl(path) { const u = load().files[path]; if (!u) throw new Error('Photo not found'); return u; },
+    async removePhoto(path) { const db = load(); delete db.files[path]; save(); },
+
     subscribe() { return () => { }; },
   };
 }

@@ -3,9 +3,11 @@ import { isNative } from './notify';
 
 export const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) || (isNative() ? 'https://vitalnest.vercel.app' : '');
 
-export type ScanKind = 'glucose' | 'bp' | 'medicine';
+export type ScanKind = 'glucose' | 'bp' | 'medicine' | 'prescription';
 export interface GlucoseScan { found: boolean; value: number | null; unit: 'mg/dL' | 'mmol/L' | null; meal_marker?: string | null; confidence: string; note?: string }
 export interface BPScan { found: boolean; systolic: number | null; diastolic: number | null; pulse: number | null; confidence: string; note?: string }
+export interface RxMed { name: string; strength?: string | null; form: string; dose?: string | null; slots: ('morning' | 'afternoon' | 'night')[]; as_needed?: boolean; food_relation: string; duration_days?: number | null; notes?: string | null; confidence: string }
+export interface RxScan { found: boolean; doctor?: string | null; date?: string | null; medicines: RxMed[]; confidence: string; note?: string }
 export interface MedScan { found: boolean; name: string | null; strength: string | null; form: string | null; composition: string | null; manufacturer?: string | null; purpose?: string | null; confidence: string; note?: string }
 
 /** Resize a photo to the AI's native resolution (1568px long side) as a sharp JPEG. */
@@ -36,4 +38,12 @@ export async function scanPhoto<T>(kind: ScanKind, files: File | File[]): Promis
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(j.error || 'Could not read the photo');
   return j as T;
+}
+
+/** Photo → compact JPEG Blob for saving (e.g. tablet photos). */
+export async function toJpegBlob(file: File, max = 1600): Promise<Blob> {
+  const b64 = await toJpegBase64(file, max);
+  const bin = atob(b64); const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: 'image/jpeg' });
 }
