@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { addDays, format, isToday } from 'date-fns';
 import { ChevronLeft, ChevronRight, Globe, Minus, Plus, Search, Trash2, Utensils, X } from 'lucide-react';
@@ -169,12 +170,15 @@ export function AddMeal() {
         <Field label="Notes (optional)" className="mt-4"><input className="field" value={notes} onChange={e => setNotes(e.target.value)} placeholder="e.g. eaten outside, extra oil" /></Field>
       )}
 
+      {createPortal(
       <div className={cx('fixed inset-x-0 bottom-24 z-30 mx-auto max-w-xl px-4 transition', items.length ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-4 opacity-0')}>
         <div className="flex items-center gap-3 rounded-3xl bg-ink p-3 pl-5 text-white shadow-2xl dark:bg-white dark:text-ink">
-          <div className="flex-1"><div className="font-display text-lg font-bold">{Math.round(tot.kcal)} kcal</div><div className="text-xs opacity-70">{Math.round(tot.carbs)} g carbs · {Math.round(tot.protein)} g protein · {items.length} items</div></div>
+          <div className="flex-1"><div className="font-display text-lg font-bold">{Math.round(tot.kcal)} kcal</div><div className="text-xs opacity-70">{Math.round(tot.carbs)} g carbs · {Math.round(tot.protein)} g protein · {items.length} item{items.length === 1 ? "" : "s"}</div></div>
           <Button onClick={save} loading={busy} disabled={!canEdit}>Save meal</Button>
         </div>
-      </div>
+      </div>,
+        document.body,
+      )}
 
       <Sheet open={addOpen} onClose={() => setAddOpen(false)} title="Add your own food">
         <CustomFoodForm initial={q} onSaved={(f) => { setCustom(c => [...c, f]); add({ name: f.name, unit: f.unit, kcal: f.kcal, carbs: f.carbs, protein: f.protein, cat: 'My foods' }); setAddOpen(false); }} />
