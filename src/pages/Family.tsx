@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { t } from '../lib/i18n';
 import { Link } from 'react-router-dom';
 import { Copy, Crown, Eye, HandHeart, MessageCircle, Pencil, UserMinus, ChevronRight, Plus } from 'lucide-react';
 import { useApp } from '../lib/store';
@@ -9,7 +10,7 @@ import { Avatar, Button, PageHeader, Section, cx } from '../components/ui';
 import { shareText } from '../lib/share';
 
 const ROLES: Record<Role, { label: string; desc: string; icon: typeof Crown }> = {
-  admin: { label: 'Admin', desc: 'Full control', icon: Crown },
+  admin: { label: 'Admin', desc: 'Manages the family · edits own & unlinked profiles', icon: Crown },
   caregiver: { label: 'Caregiver', desc: 'Can add & edit for everyone', icon: HandHeart },
   viewer: { label: 'Viewer', desc: 'Can see all stats', icon: Eye },
 };
@@ -25,7 +26,7 @@ export function Patients() {
             <Avatar name={p.full_name} color={p.color} size={48} />
             <div className="min-w-0 flex-1">
               <div className="truncate font-semibold">{p.full_name}</div>
-              <div className="truncate text-xs text-slate-500">{[p.relation, age(p.dob) !== null ? `${age(p.dob)} yrs` : null, CONDITIONS[p.condition].label].filter(Boolean).join(' · ')}</div>
+              <div className="truncate text-xs text-slate-500">{[p.relation ? t(p.relation) : null, age(p.dob) !== null ? t('{n} yrs', { n: age(p.dob) }) : null, t(CONDITIONS[p.condition].label)].filter(Boolean).join(' · ')}</div>
             </div>
             <ChevronRight className="h-4 w-4 text-slate-300" />
           </Link>
@@ -45,15 +46,15 @@ export default function Family() {
   useEffect(() => { load(); }, [fid]); // eslint-disable-line
   if (!membership) return null;
   const code = membership.family.invite_code;
-  const appUrl = window.location.origin.startsWith('http') && !window.location.origin.includes('localhost') ? window.location.origin : 'the VitalNest app';
-  const invite = `You're invited to *${membership.family.name}* on VitalNest 💚\n\nSee our family's sugar, BP & medicine records.\n1️⃣ Open ${appUrl}\n2️⃣ Create an account (username + password)\n3️⃣ Choose "I have a code" and enter: *${code}*`;
+  const appUrl = window.location.origin.startsWith('http') && !window.location.origin.includes('localhost') ? window.location.origin : t('the VitalNest app');
+  const invite = t("You're invited to *{family}* on VitalNest 💚\n\nSee our family's sugar, BP & medicine records.\n1️⃣ Open {url}\n2️⃣ Create an account (username + password)\n3️⃣ Choose \"I have a code\" and enter: *{code}*", { family: membership.family.name, url: appUrl, code });
 
   async function setRole(p: Person, r: Role) {
     try { await api().setRole(fid!, p.user_id, r); load(); toast(`${p.display_name || p.username} is now ${ROLES[r].label}`); } catch (e) { toast((e as Error).message, 'err'); }
   }
   async function remove(p: Person) {
     const self = p.user_id === user?.id;
-    if (!confirm(self ? 'Leave this family?' : `Remove ${p.display_name || p.username} from the family?`)) return;
+    if (!confirm(self ? t('Leave this family?') : t('Remove {name} from the family?', { name: p.display_name || p.username }))) return;
     try { await api().removeMember(fid!, p.user_id); if (self) { await refreshAuth(); window.location.replace('/'); } else load(); } catch (e) { toast((e as Error).message, 'err'); }
   }
 
@@ -80,7 +81,7 @@ export default function Family() {
         </div>
       </div>
 
-      <Section title={`Members (${people.length})`}>
+      <Section title={t('Members ({n})', { n: people.length })}>
         <div className="card divide-y divide-slate-100 dark:divide-white/5">
           {people.map(p => {
             const R = ROLES[p.role];
@@ -107,7 +108,7 @@ export default function Family() {
             );
           })}
         </div>
-        <p className="mt-2 px-1 text-[0.75rem] text-slate-400">New members join as <b>Viewer</b>. Make someone a <b>Caregiver</b> if they log readings for others. A person can always edit their own profile if it's linked to their login.</p>
+        <p className="mt-2 px-1 text-[0.75rem] text-slate-400">{t('New members join as Viewer. Make someone a Caregiver if they log readings for others. Each person with their own login is the only one (with caregivers) who can change their own health data.')}</p>
       </Section>
     </div>
   );

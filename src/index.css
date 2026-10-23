@@ -5,8 +5,8 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Plus Jakarta Sans Variable", "Inter Variable", ui-sans-serif, sans-serif;
+  --font-sans: "Inter Variable", "Noto Sans Tamil Variable", "Noto Sans Tamil", "Nirmala UI", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Plus Jakarta Sans Variable", "Inter Variable", "Noto Sans Tamil Variable", "Noto Sans Tamil", "Nirmala UI", ui-sans-serif, sans-serif;
   --color-brand-50: #effcf9;
   --color-brand-100: #c9f5ec;
   --color-brand-200: #94eadb;
@@ -79,3 +79,8 @@ input[type="date"], input[type="time"], input[type="datetime-local"] { min-heigh
 .dark { --dot-ring: #0e1626; }
 
 html[data-textlg] .nav-label, html[data-textlg] .lg-hide { display: none; }
+
+/* Tamil: script needs normal letter-spacing and a little more line height */
+html.lang-ta h1, html.lang-ta h2, html.lang-ta h3, html.lang-ta .font-display { letter-spacing: normal; }
+html.lang-ta body { line-height: 1.6; }
+html.lang-ta .uppercase { text-transform: none; letter-spacing: normal; }

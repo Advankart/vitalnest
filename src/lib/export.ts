@@ -1,7 +1,11 @@
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { format } from 'date-fns';
+import { format as fmtLocal } from 'date-fns';
+import { enUS } from 'date-fns/locale';
+import { t } from './i18n';
+/** Doctor files (PDF / Excel) stay in English — PDF fonts can't shape Tamil script. */
+const format = (d: Date | number, f: string) => fmtLocal(d, f, { locale: enUS });
 import type { Meal, Medicine, MedicineLog, Patient, Vital, WaterLog } from './types';
 import { adherence, age, bmi, classify, CONDITIONS, ctxLabel, dayKey, eA1c, FOOD_REL, fmtVital, STATUS_STYLE, stats, timeInRange, to12h, VITALS } from './health';
 
@@ -202,39 +206,40 @@ export function summaryText(p: Patient, d: ExportData, days: number): string {
   const lastG = [...s.g].reverse()[0];
   const lastBP = [...s.bp].reverse()[0];
   const L: string[] = [];
-  L.push(`🩺 *${p.full_name} — Health update*`);
-  L.push(`_${CONDITIONS[p.condition].label} · last ${days} days_`);
+  L.push(t('🩺 *{name} — Health update*', { name: p.full_name }));
+  L.push(`_${t('{condition} · last {n} days', { condition: t(CONDITIONS[p.condition].label), n: days })}_`);
   L.push('');
   if (s.gs.n) {
-    L.push('🩸 *Blood sugar*');
-    if (lastG) L.push(`• Latest: *${Math.round(lastG.value1)} mg/dL* (${ctxLabel(lastG.context)}, ${format(new Date(lastG.measured_at), 'd MMM h:mm a')})`);
-    L.push(`• Average: ${Math.round(s.gs.avg)} mg/dL${s.fast.n ? ` · Fasting ${Math.round(s.fast.avg)}` : ''}${s.pp.n ? ` · After meal ${Math.round(s.pp.avg)}` : ''}`);
-    L.push(`• In range (70–180): *${Math.round(s.tir.inRange)}%*${s.hypos ? ` · ⚠️ ${s.hypos} low` : ''}`);
-    if (s.eA1c) L.push(`• Est. HbA1c: ${s.eA1c.toFixed(1)}%${s.a1c ? ` · Lab: ${Number(s.a1c.value1).toFixed(1)}%` : ''}`);
+    L.push(t('🩸 *Blood sugar*'));
+    if (lastG) L.push(t('• Latest: *{v} mg/dL* ({when}, {date})', { v: Math.round(lastG.value1), when: t(ctxLabel(lastG.context) || 'Random'), date: fmtLocal(new Date(lastG.measured_at), 'd MMM h:mm a') }));
+    L.push(t('• Average: {v} mg/dL', { v: Math.round(s.gs.avg) }) + (s.fast.n ? ' · ' + t('Fasting {v}', { v: Math.round(s.fast.avg) }) : '') + (s.pp.n ? ' · ' + t('After meal {v}', { v: Math.round(s.pp.avg) }) : ''));
+    L.push(t('• In range (70–180): *{v}%*', { v: Math.round(s.tir.inRange) }) + (s.hypos ? ' · ⚠️ ' + t('{n} low', { n: s.hypos }) : ''));
+    if (s.eA1c) L.push(t('• Est. HbA1c: {v}%', { v: s.eA1c.toFixed(1) }) + (s.a1c ? ' · ' + t('Lab: {v}%', { v: Number(s.a1c.value1).toFixed(1) }) : ''));
     L.push('');
   }
   if (s.sys.n) {
-    L.push('❤️ *BP & heart*');
-    if (lastBP) L.push(`• Latest BP: *${Math.round(lastBP.value1)}/${Math.round(Number(lastBP.value2))}*${lastBP.value3 ? ` · Pulse ${Math.round(lastBP.value3)}` : ''}`);
-    L.push(`• Average BP: ${Math.round(s.sys.avg)}/${Math.round(s.dia.avg)} mmHg${s.hr.n ? ` · Pulse ${Math.round(s.hr.avg)} bpm` : ''}`);
+    L.push(t('❤️ *BP & heart*'));
+    if (lastBP) L.push(t('• Latest BP: *{v}*', { v: `${Math.round(lastBP.value1)}/${Math.round(Number(lastBP.value2))}` }) + (lastBP.value3 ? ' · ' + t('Pulse {v}', { v: Math.round(lastBP.value3) }) : ''));
+    L.push(t('• Average BP: {v} mmHg', { v: `${Math.round(s.sys.avg)}/${Math.round(s.dia.avg)}` }) + (s.hr.n ? ' · ' + t('Pulse {v} bpm', { v: Math.round(s.hr.avg) }) : ''));
     L.push('');
   }
-  if (s.hr.n && !s.sys.n) L.push(`❤️ Average pulse: ${Math.round(s.hr.avg)} bpm`);
-  if (s.spo2.n) L.push(`🫁 SpO₂: average ${Math.round(s.spo2.avg)}% (lowest ${Math.round(s.spo2.min)}%)`);
-  if (s.a1c && !s.gs.n) L.push(`🧪 Latest HbA1c: ${Number(s.a1c.value1).toFixed(1)}% (${format(new Date(s.a1c.measured_at), 'd MMM yyyy')})`);
+  if (s.hr.n && !s.sys.n) L.push(t('❤️ Average pulse: {v} bpm', { v: Math.round(s.hr.avg) }));
+  if (s.spo2.n) L.push(t('🫁 SpO₂: average {v}% (lowest {m}%)', { v: Math.round(s.spo2.avg), m: Math.round(s.spo2.min) }));
+  if (s.a1c && !s.gs.n) L.push(t('🧪 Latest HbA1c: {v}% ({date})', { v: Number(s.a1c.value1).toFixed(1), date: fmtLocal(new Date(s.a1c.measured_at), 'd MMM yyyy') }));
   const temps = d.vitals.filter(v => v.kind === 'temperature');
-  if (temps.length) L.push(`🌡️ Latest temperature: ${Number(temps[temps.length - 1].value1).toFixed(1)} °F`);
-  if (s.weight) L.push(`⚖️ Weight: ${s.weight.toFixed(1)} kg${s.weightChange ? ` (${s.weightChange > 0 ? '+' : ''}${s.weightChange.toFixed(1)} kg)` : ''}`);
-  if (s.adh.due) L.push(`💊 Medicines taken: ${Math.round(s.adh.pct)}% (${s.adh.taken}/${s.adh.due} doses)`);
+  if (temps.length) L.push(t('🌡️ Latest temperature: {v} °F', { v: Number(temps[temps.length - 1].value1).toFixed(1) }));
+  if (s.weight) L.push(t('⚖️ Weight: {v} kg', { v: s.weight.toFixed(1) }) + (s.weightChange ? ` (${s.weightChange > 0 ? '+' : ''}${s.weightChange.toFixed(1)} kg)` : ''));
+  if (s.adh.due) L.push(t('💊 Medicines taken: {p}% ({a}/{b} doses)', { p: Math.round(s.adh.pct), a: s.adh.taken, b: s.adh.due }));
   const active = d.meds.filter(m => m.active);
   if (active.length) {
     L.push('');
-    L.push('💊 *Current medicines*');
-    for (const m of active) L.push(`• *${m.name}*${m.strength ? ` ${m.strength}` : ''}${m.dose ? ` — ${m.dose}` : ''} · ${m.times.map(to12h).join(', ')}${m.food_relation ? ` · ${FOOD_REL[m.food_relation] ?? ''}` : ''}${m.days?.length && m.days.length < 7 ? ` · ${m.days.map(x => ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][x]).join('/')}` : ''}`);
+    L.push(t('💊 *Current medicines*'));
+    const DN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    for (const m of active) L.push(`• *${m.name}*${m.strength ? ` ${m.strength}` : ''}${m.dose ? ` — ${m.dose}` : ''} · ${m.times.map(to12h).join(', ')}${m.food_relation ? ` · ${t(FOOD_REL[m.food_relation] ?? '')}` : ''}${m.days?.length && m.days.length < 7 ? ` · ${m.days.map(x => t(DN[x])).join('/')}` : ''}`);
   }
-  if (s.kcal) L.push(`🍽️ Avg calories: ${Math.round(s.kcal)} kcal/day`);
-  if (s.water) L.push(`💧 Avg water: ${(s.water / 1000).toFixed(1)} L/day`);
+  if (s.kcal) L.push(t('🍽️ Avg calories: {v} kcal/day', { v: Math.round(s.kcal) }));
+  if (s.water) L.push(t('💧 Avg water: {v} L/day', { v: (s.water / 1000).toFixed(1) }));
   L.push('');
-  L.push('_Shared from VitalNest_');
+  L.push(t('_Shared from VitalNest_'));
   return L.join('\n');
 }

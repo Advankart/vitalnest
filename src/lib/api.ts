@@ -41,7 +41,7 @@ export interface Api {
   signOut(): Promise<void>;
   changePassword(pw: string): Promise<void>;
   accessToken(): Promise<string | null>;
-  registerPush(token: string, platform: 'android' | 'web', alertsVitals: boolean, alertsMeds: boolean): Promise<void>;
+  registerPush(token: string, platform: 'android' | 'web', alertsVitals: boolean, alertsMeds: boolean, lang?: string): Promise<void>;
   unregisterPush(token: string): Promise<void>;
 
   myFamilies(): Promise<Membership[]>;
@@ -122,7 +122,7 @@ function cloudApi(sb: SupabaseClient): Api {
     async signOut() { await sb.auth.signOut(); },
     async changePassword(pw) { const { error } = await sb.auth.updateUser({ password: pw }); if (error) throw new Error(friendly(error.message)); },
     async accessToken() { const { data } = await sb.auth.getSession(); return data.session?.access_token ?? null; },
-    async registerPush(tok, plat, av, am) { check(await sb.rpc('register_push_token', { tok, plat, av, am })); },
+    async registerPush(tok, plat, av, am, lng = 'en') { check(await sb.rpc('register_push_token', { tok, plat, av, am, lng })); },
     async unregisterPush(tok) { await sb.rpc('unregister_push_token', { tok }); },
 
     async myFamilies() {

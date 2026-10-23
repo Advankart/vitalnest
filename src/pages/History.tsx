@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { t } from '../lib/i18n';
 import { format, isToday, isYesterday } from 'date-fns';
 import { Trash2, ListX, Share2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -8,6 +9,8 @@ import { classify, ctxLabel, fmtVital, STATUS_STYLE, VITALS, vitalsFor } from '.
 import type { VitalKind } from '../lib/types';
 import { Empty, PageHeader, Segmented } from '../components/ui';
 import { VitalIcon } from '../components/Layout';
+
+const SHORT: Record<string, string> = { glucose: 'Sugar', bp: 'BP', heart_rate: 'Heart rate', spo2: 'SpO₂' };
 
 export default function History() {
   const { patient, data, canEdit, refreshData, toast } = useApp();
@@ -28,15 +31,15 @@ export default function History() {
   if (!patient) return null;
 
   async function del(id: string) {
-    if (!confirm('Delete this entry?')) return;
+    if (!confirm(t('Delete this entry?'))) return;
     try { await api().remove('vitals', id); await refreshData(); toast('Deleted'); } catch (e) { toast((e as Error).message, 'err'); }
   }
 
   return (
     <div className="rise">
-      <PageHeader title="History" subtitle={`${rows.length} readings · ${patient.full_name}`} right={<button onClick={() => nav(`/export?only=${kind === 'all' ? 'vitals' : kind === 'bp' ? 'bp,heart_rate' : kind}`)} className="flex items-center gap-1.5 rounded-full bg-brand-600 px-3.5 py-2 text-[0.8125rem] font-semibold text-white shadow-md"><Share2 className="h-4 w-4" />Share</button>} />
+      <PageHeader title="History" subtitle={`${t('{n} readings', { n: rows.length })} · ${patient.full_name}`} right={<button onClick={() => nav(`/export?only=${kind === 'all' ? 'vitals' : kind === 'bp' ? 'bp,heart_rate' : kind}`)} className="flex items-center gap-1.5 rounded-full bg-brand-600 px-3.5 py-2 text-[0.8125rem] font-semibold text-white shadow-md"><Share2 className="h-4 w-4" />Share</button>} />
       <Segmented value={kind} onChange={setKind} className="mb-4"
-        options={[{ id: 'all', label: 'All' }, ...vitalsFor(patient.condition).map(k => ({ id: k, label: VITALS[k].label.replace('Blood ', '') }))]} />
+        options={[{ id: 'all', label: 'All' }, ...vitalsFor(patient.condition).map(k => ({ id: k, label: SHORT[k] ?? VITALS[k].label }))]} />
       {!groups.length && <Empty icon={<ListX className="h-7 w-7" />} title="Nothing here yet" />}
       {groups.map(g => (
         <div key={g.day} className="mb-4">
@@ -49,7 +52,7 @@ export default function History() {
                   <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl" style={{ background: m.color + '18', color: m.color }}><VitalIcon kind={v.kind} className="h-[1.125rem] w-[1.125rem]" /></div>
                   <div className="min-w-0 flex-1">
                     <div className="text-[0.875rem] font-semibold">{m.label}</div>
-                    <div className="truncate text-xs text-slate-400">{format(new Date(v.measured_at), 'h:mm a')}{v.context ? ` · ${ctxLabel(v.context)}` : ''}{v.notes ? ` · ${v.notes}` : ''}</div>
+                    <div className="truncate text-xs text-slate-400">{format(new Date(v.measured_at), 'h:mm a')}{v.context ? ` · ${t(ctxLabel(v.context))}` : ''}{v.notes ? ` · ${v.notes}` : ''}</div>
                   </div>
                   <div className="text-right">
                     <div className="font-display font-bold">{fmtVital(v)}<span className="text-[0.6875rem] font-medium text-slate-400"> {m.unit}</span></div>

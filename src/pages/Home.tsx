@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { t as tr, tDose } from '../lib/i18n';
 import { Link, useNavigate } from 'react-router-dom';
 import { formatDistanceToNowStrict, format, isToday } from 'date-fns';
 import { AlertTriangle, Check, ChevronRight, Clock, Droplets, FileText, Flame, Moon, Pill, Plus, Sparkles, Sun, Sunrise, Users } from 'lucide-react';
@@ -88,7 +89,7 @@ export default function Home() {
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-[0.7812rem]">
                   {lgStatus && <span className="chip bg-white/20 text-white"><span className="h-1.5 w-1.5 rounded-full" style={{ background: STATUS_STYLE[lgStatus].dot }} />{STATUS_STYLE[lgStatus].label}</span>}
-                  <span className="text-white/75">{ctxLabel(lg.context)} · {formatDistanceToNowStrict(new Date(lg.measured_at), { addSuffix: true })}</span>
+                  <span className="text-white/75">{tr(ctxLabel(lg.context))} · {formatDistanceToNowStrict(new Date(lg.measured_at), { addSuffix: true })}</span>
                 </div>
               </>
             ) : <div className="mt-2 text-white/80">No readings yet</div>}
@@ -190,7 +191,7 @@ export default function Home() {
                           <MedThumb path={med.photo_path} form={med.form} name={med.name} size="sm" />
                           <div className="min-w-0 flex-1">
                             <div className={cx('break-words text-[0.9062rem] font-semibold', isDone && 'text-slate-400 line-through')}>{med.name} <span className="font-normal text-slate-400">{med.strength}</span></div>
-                            <div className={cx('text-xs', overdue ? 'font-semibold text-amber-600' : 'text-slate-400')}>{[to12h(time), med.dose, FOOD_REL[med.food_relation ?? '']].filter(Boolean).join(' · ')}</div>
+                            <div className={cx('text-xs', overdue ? 'font-semibold text-amber-600' : 'text-slate-400')}>{[to12h(time), tDose(med.dose), tr(FOOD_REL[med.food_relation ?? ''] ?? '')].filter(Boolean).join(' · ')}</div>
                           </div>
                           <button onClick={() => toggleMed(med.id, time)} disabled={busyMed === med.id + time} aria-label={isDone ? 'Mark not taken' : 'Mark taken'}
                             className={cx('grid h-10 w-10 shrink-0 place-items-center rounded-full ring-2 transition active:scale-90', isDone ? 'bg-brand-600 text-white ring-brand-600' : overdue ? 'text-amber-500 ring-amber-300' : 'text-slate-300 ring-slate-200 dark:ring-white/10')}>

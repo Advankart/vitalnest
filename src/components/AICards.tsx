@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { t } from '../lib/i18n';
 import { ChevronRight, Flame, Leaf, RefreshCw, Sparkles, Utensils } from 'lucide-react';
 import { useApp } from '../lib/store';
 import { api } from '../lib/api';
@@ -98,7 +99,7 @@ export function DietCard() {
         <div className="flex items-center gap-3 bg-gradient-to-r from-orange-50 to-amber-50 px-4 py-3 dark:from-orange-500/10 dark:to-amber-500/5">
           <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-orange-500 text-white"><Utensils className="h-5 w-5" /></div>
           <div className="min-w-0 flex-1">
-            <div className="text-[0.75rem] font-semibold uppercase tracking-wide text-orange-700 dark:text-orange-300">Recommended for your {SLOT_LABEL[meal?.slot ?? slot].toLowerCase()}</div>
+            <div className="text-[0.75rem] font-semibold uppercase tracking-wide text-orange-700 dark:text-orange-300">{t('Recommended for your ' + SLOT_LABEL[meal?.slot ?? slot].toLowerCase())}</div>
             <div className="text-[0.75rem] text-slate-500">Diabetes &amp; heart friendly · AI suggestion</div>
           </div>
           {meal && <div className="shrink-0 text-right"><div className="font-display text-lg font-bold leading-none">{Math.round(meal.total_kcal)}</div><div className="text-[0.6875rem] text-slate-500">kcal</div></div>}
@@ -115,7 +116,7 @@ export function DietCard() {
         </div>
         {plan && (
           <button onClick={() => setOpen(true)} className="flex w-full items-center gap-2 border-t border-slate-100 px-4 py-3 text-[0.8438rem] font-semibold text-brand-700 dark:border-white/5 dark:text-brand-300">
-            <Flame className="h-4 w-4 text-orange-500" />Full day menu · {Math.round(plan.day_total_kcal)} kcal<ChevronRight className="ml-auto h-4 w-4" />
+            <Flame className="h-4 w-4 text-orange-500" />{t('Full day menu · {n} kcal', { n: Math.round(plan.day_total_kcal) })}<ChevronRight className="ml-auto h-4 w-4" />
           </button>
         )}
       </div>
@@ -130,7 +131,7 @@ export function DietCard() {
             ))}
             <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 dark:bg-white/[.03]"><span className="font-semibold">Day total</span><span className="font-display text-lg font-bold">{Math.round(plan.day_total_kcal)} kcal</span></div>
             {plan.tips?.length > 0 && <ul className="space-y-1.5 text-[0.8438rem] text-slate-600 dark:text-slate-300">{plan.tips.map((t, i) => <li key={i} className="flex gap-2"><Leaf className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />{t}</li>)}</ul>}
-            <p className="text-[0.75rem] text-slate-400">AI suggestion based on {patient.full_name.split(' ')[0]}'s readings and a {patient.daily_kcal_goal} kcal goal. Follow your doctor's or dietitian's advice first.</p>
+            <p className="text-[0.75rem] text-slate-400">{t("AI suggestion based on {name}'s readings and a {n} kcal goal. Follow your doctor's or dietitian's advice first.", { name: patient.full_name.split(' ')[0], n: patient.daily_kcal_goal })}</p>
           </div>
         )}
       </Sheet>

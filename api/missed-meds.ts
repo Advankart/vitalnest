@@ -23,10 +23,16 @@ export default async function handler(req: any, res: any) {
       const members = await sb<any[]>(`/rest/v1/family_members?family_id=eq.${d.family_id}&select=user_id`);
       const others = members.map(m => m.user_id).filter((u: string) => u && u !== d.linked_user_id);
       const first = String(d.patient_name).split(' ')[0];
-      const r = await sendToUsers(others, 'alerts_meds', {
+      const detail = `${[d.strength, d.dose].filter(Boolean).join(' · ')}${d.strength || d.dose ? ' · ' : ''}`;
+      const tag = `med-${d.medicine_id}-${d.scheduled_date}-${d.scheduled_time}`;
+      const r = await sendToUsers(others, 'alerts_meds', lang => lang === 'ta' ? {
+        title: `💊 ${first} இன்னும் ${d.med_name} எடுக்கவில்லை`,
+        body: `${detail}${to12h(d.scheduled_time)} மணிக்கு எடுக்க வேண்டியது — இன்னும் எடுத்ததாகக் குறிக்கப்படவில்லை`,
+        path: '/meds', patient_id: d.patient_id, tag,
+      } : {
         title: `💊 ${first} hasn't taken ${d.med_name}`,
-        body: `${[d.strength, d.dose].filter(Boolean).join(' · ')}${d.strength || d.dose ? ' · ' : ''}due at ${to12h(d.scheduled_time)} — not marked as taken yet`,
-        path: '/meds', patient_id: d.patient_id, tag: `med-${d.medicine_id}-${d.scheduled_date}-${d.scheduled_time}`,
+        body: `${detail}due at ${to12h(d.scheduled_time)} — not marked as taken yet`,
+        path: '/meds', patient_id: d.patient_id, tag,
       });
       sent += r.sent;
     }

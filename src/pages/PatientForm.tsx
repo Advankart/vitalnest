@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { t } from '../lib/i18n';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Check, Trash2 } from 'lucide-react';
 import { api } from '../lib/api';
@@ -24,7 +25,7 @@ export default function PatientForm() {
   const [sp] = useSearchParams();
   const first = sp.get('first') === '1';
   const nav = useNavigate();
-  const { patients, membership, user, role, refreshPatients, selectPatient, toast } = useApp();
+  const { patients, membership, user, role, refreshPatients, selectPatient, toast, canEditFor } = useApp();
   const existing = patients.find(p => p.id === id);
   const [p, setP] = useState<Partial<Patient>>(() => existing ?? {
     full_name: first ? (user?.display_name ?? '') : '', relation: first ? 'Self' : '', condition: 'type2',
@@ -34,7 +35,7 @@ export default function PatientForm() {
   const [busy, setBusy] = useState(false);
   useEffect(() => { if (existing) setP(existing); }, [existing?.id]); // eslint-disable-line
 
-  const canEditThis = role === 'admin' || role === 'caregiver' || existing?.linked_user_id === user?.id;
+  const canEditThis = existing ? canEditFor(existing) : role === 'admin' || role === 'caregiver';
   const up = (k: keyof Patient, v: unknown) => setP(s => ({ ...s, [k]: v === '' ? null : v }));
   const num = (k: keyof Patient) => ({ value: (p[k] as number | null | undefined) ?? '', onChange: (e: React.ChangeEvent<HTMLInputElement>) => up(k, e.target.value === '' ? null : Number(e.target.value)), type: 'number', inputMode: 'decimal' as const, className: 'field', disabled: !canEditThis });
   const txt = (k: keyof Patient) => ({ value: (p[k] as string | null | undefined) ?? '', onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => up(k, e.target.value), className: 'field', disabled: !canEditThis });
@@ -60,7 +61,7 @@ export default function PatientForm() {
   }
 
   async function del() {
-    if (!existing || !confirm(`Delete ${existing.full_name} and ALL their records? This cannot be undone.`)) return;
+    if (!existing || !confirm(t('Delete {name} and ALL their records? This cannot be undone.', { name: existing.full_name }))) return;
     try { await api().deletePatient(existing.id); await refreshPatients(); toast('Deleted'); nav('/patients', { replace: true }); }
     catch (e) { toast((e as Error).message, 'err'); }
   }
@@ -75,7 +76,7 @@ export default function PatientForm() {
         <Avatar name={p.full_name || '?'} color={p.color || AVATAR_COLORS[0]} size={64} />
         <div className="min-w-0 flex-1">
           <input {...txt('full_name')} className="w-full bg-transparent font-display text-xl font-bold outline-none placeholder:text-slate-300" placeholder="Full name" />
-          <div className="mt-1 text-sm text-slate-500">{[a !== null ? `${a} yrs` : null, p.gender, p.blood_group, b ? `BMI ${b.toFixed(1)}` : null].filter(Boolean).join(' · ') || 'Fill in details below'}</div>
+          <div className="mt-1 text-sm text-slate-500">{[a !== null ? t('{n} yrs', { n: a }) : null, p.gender ? t(p.gender) : null, p.blood_group, b ? `BMI ${b.toFixed(1)}` : null].filter(Boolean).join(' · ') || t('Fill in details below')}</div>
           <div className="mt-3 flex flex-wrap gap-1.5">
             {AVATAR_COLORS.map(c => (
               <button key={c} onClick={() => up('color', c)} className="grid h-6 w-6 shrink-0 place-items-center rounded-full" style={{ background: c }} aria-label="Colour">
@@ -142,7 +143,7 @@ export default function PatientForm() {
 
       <section className="card mt-4 space-y-3 p-5">
         <Field label="Notes"><textarea {...txt('notes')} rows={3} placeholder="Anything the family should know" /></Field>
-        {(role === 'admin' || !existing) && (
+        {canEditThis && (role === 'admin' || !existing || existing.linked_user_id === user?.id) && (
           <label className="flex items-center gap-3 text-sm">
             <input type="checkbox" className="h-5 w-5 accent-brand-600" checked={p.linked_user_id === user?.id} onChange={e => up('linked_user_id', e.target.checked ? user?.id : null)} />
             This profile is me (I can always edit my own data)
@@ -153,7 +154,7 @@ export default function PatientForm() {
       {canEditThis && (
         <div className="mt-5 space-y-3">
           <Button block size="lg" loading={busy} onClick={save}>{existing ? 'Save changes' : 'Create profile'}</Button>
-          {existing && role === 'admin' && <Button block variant="danger" onClick={del}><Trash2 className="h-4 w-4" />Delete profile</Button>}
+          {existing && role === 'admin' && canEditThis && <Button block variant="danger" onClick={del}><Trash2 className="h-4 w-4" />Delete profile</Button>}
         </div>
       )}
     </div>

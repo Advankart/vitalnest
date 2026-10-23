@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { t } from '../lib/i18n';
 import { BellRing, BellOff, Plus, Smartphone, Trash2 } from 'lucide-react';
 import { useApp } from '../lib/store';
 import { api } from '../lib/api';
@@ -30,7 +31,7 @@ function FamilyAlerts() {
         <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300"><Users className="h-5 w-5" /></div>
         <div className="flex-1">
           <div className="font-bold">Family alerts</div>
-          <p className="text-[0.8125rem] text-slate-500">Get notified on this {isNative() ? 'phone' : 'browser'} when someone in the family logs a reading, or a medicine isn't marked taken 30 minutes after its time.</p>
+          <p className="text-[0.8125rem] text-slate-500">{t(isNative() ? "Get notified on this phone when someone in the family logs a reading, or a medicine isn't marked taken 30 minutes after its time." : "Get notified on this browser when someone in the family logs a reading, or a medicine isn't marked taken 30 minutes after its time.")}</p>
         </div>
       </div>
       <div className="mt-4 space-y-2">
@@ -54,7 +55,7 @@ export function DeviceNotifications() {
   async function enable() {
     const ok = await requestNotifyPermission();
     setPerm(ok ? 'granted' : 'denied');
-    if (ok) { setNotifyEnabled(true); setOn(true); const n = await rescheduleAll(patients); toast(`Reminders on · ${n} scheduled`); initPush(p => nav(p)); }
+    if (ok) { setNotifyEnabled(true); setOn(true); const n = await rescheduleAll(patients); toast(t('Reminders on · {n} scheduled', { n })); initPush(p => nav(p)); }
     else toast('Permission denied — enable notifications for VitalNest in phone settings', 'err');
   }
   async function toggleOn() { const v = !on; setOn(v); setNotifyEnabled(v); await rescheduleAll(patients); }
@@ -68,7 +69,7 @@ export function DeviceNotifications() {
       <div className="flex items-start gap-3">
         <div className={cx('grid h-11 w-11 shrink-0 place-items-center rounded-2xl', perm === 'granted' && on ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-500 dark:bg-white/5')}>{perm === 'granted' && on ? <BellRing className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}</div>
         <div className="flex-1">
-          <div className="font-bold">Reminders on this {isNative() ? 'phone' : 'browser'}</div>
+          <div className="font-bold">{t(isNative() ? 'Reminders on this phone' : 'Reminders on this browser')}</div>
           <p className="text-[0.7812rem] text-slate-500">{isNative() ? 'Alarms ring at the set time even when the app is closed.' : 'In the browser, reminders appear only while VitalNest is open. Install the Android app for alarms that always ring.'}</p>
         </div>
       </div>
@@ -94,7 +95,7 @@ export function DeviceNotifications() {
           )}
           {exact && exact !== 'granted' && (
             <button onClick={openExactAlarmSetting} className="mt-3 w-full rounded-2xl bg-amber-50 px-4 py-3 text-left text-[0.7812rem] text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">
-              <b>Allow exact alarms</b> so reminders ring on time (Android may delay them otherwise). Tap to open settings.
+              {t('Allow exact alarms so reminders ring on time (Android may delay them otherwise). Tap to open settings.')}
             </button>
           )}
           <Button variant="soft" block className="mt-3" onClick={() => testNotification().then(() => toast(isNative() ? 'Test reminder in 5 seconds' : 'Test sent'))}><Smartphone className="h-4 w-4" />Send a test reminder</Button>

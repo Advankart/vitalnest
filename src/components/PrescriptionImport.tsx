@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { t } from '../lib/i18n';
 import { addDays } from 'date-fns';
 import { AlertTriangle, Check, Moon, Sun, Sunrise, Trash2 } from 'lucide-react';
 import { useApp } from '../lib/store';
@@ -30,7 +31,7 @@ export function PrescriptionImport({ onDone }: { onDone: () => void }) {
     const pick = (rows ?? []).filter(r => r.keep && r.name.trim());
     if (!pick.length) { toast('Select at least one medicine', 'err'); return; }
     const noTime = pick.find(r => !r.slots.length);
-    if (noTime) { toast(`Choose a time for ${noTime.name} (or untick it)`, 'err'); return; }
+    if (noTime) { toast(t('Choose a time for {name} (or untick it)', { name: noTime.name }), 'err'); return; }
     setBusy(true);
     try {
       const today = new Date();
@@ -50,7 +51,7 @@ export function PrescriptionImport({ onDone }: { onDone: () => void }) {
         }
       }
       await refreshData();
-      toast(`${pick.length} medicine${pick.length > 1 ? 's' : ''} added · reminders set`);
+      toast(t(pick.length > 1 ? '{n} medicines added · reminders set' : '{n} medicine added · reminders set', { n: pick.length }));
       onDone();
     } catch (e) { toast((e as Error).message, 'err'); } finally { setBusy(false); }
   }
@@ -67,7 +68,7 @@ export function PrescriptionImport({ onDone }: { onDone: () => void }) {
       {rows && (
         <>
           <div className="flex items-baseline justify-between px-1">
-            <div className="font-bold">{rows.length} medicine{rows.length === 1 ? '' : 's'} found</div>
+            <div className="font-bold">{t(rows.length === 1 ? '{n} medicine found' : '{n} medicines found', { n: rows.length })}</div>
             {rx.doctor && <div className="truncate pl-2 text-xs text-slate-500">{rx.doctor}{rx.date ? ` · ${rx.date}` : ''}</div>}
           </div>
           <div className="space-y-3">
@@ -105,7 +106,7 @@ export function PrescriptionImport({ onDone }: { onDone: () => void }) {
           </div>
           <Field><label className="flex items-center gap-3 text-sm"><input type="checkbox" className="h-5 w-5 accent-brand-600" checked={saveRx} onChange={e => setSaveRx(e.target.checked)} />Also save the prescription photo in Reports</label></Field>
           <p className="px-1 text-[0.75rem] text-slate-500">Times: Morning 8 AM · Afternoon 2 PM · Night 9 PM — change any medicine later from Medicines.</p>
-          <Button block size="lg" loading={busy} onClick={save}>Add {rows.filter(r => r.keep).length} medicine{rows.filter(r => r.keep).length === 1 ? '' : 's'}</Button>
+          <Button block size="lg" loading={busy} onClick={save}>{t(rows.filter(r => r.keep).length === 1 ? 'Add {n} medicine' : 'Add {n} medicines', { n: rows.filter(r => r.keep).length })}</Button>
         </>
       )}
     </div>

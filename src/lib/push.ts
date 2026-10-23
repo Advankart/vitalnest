@@ -1,4 +1,5 @@
 // Family alerts: registers this device for push notifications (Android via Firebase, browsers via Web Push).
+import { t as tr, lang } from './i18n';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { api } from './api';
@@ -13,13 +14,13 @@ export const alertPrefs = () => ({ vitals: get(K_V) !== '0', meds: get(K_M) !== 
 export async function setAlertPrefs(p: { vitals: boolean; meds: boolean }) {
   set(K_V, p.vitals ? '1' : '0'); set(K_M, p.meds ? '1' : '0');
   const t = get(K_TOKEN);
-  if (t) await api().registerPush(t, isNative() ? 'android' : 'web', p.vitals, p.meds).catch(() => { });
+  if (t) await api().registerPush(t, isNative() ? 'android' : 'web', p.vitals, p.meds, lang).catch(() => { });
 }
 export const pushToken = () => get(K_TOKEN);
 
 async function save(token: string, platform: 'android' | 'web') {
   const p = alertPrefs();
-  await api().registerPush(token, platform, p.vitals, p.meds);
+  await api().registerPush(token, platform, p.vitals, p.meds, lang);
   set(K_TOKEN, token);
 }
 
@@ -34,7 +35,7 @@ export async function initPush(navigate: (path: string, patientId?: string) => v
       if (perm.receive !== 'granted') return;
       if (!nativeInit) {
         nativeInit = true;
-        await PushNotifications.createChannel({ id: 'family', name: 'Family alerts', description: 'New readings and missed medicines in your family', importance: 4, visibility: 1, vibration: true }).catch(() => { });
+        await PushNotifications.createChannel({ id: 'family', name: tr('Family alerts'), description: tr('New readings and missed medicines in your family'), importance: 4, visibility: 1, vibration: true }).catch(() => { });
         await PushNotifications.addListener('registration', t => { save(t.value, 'android').catch(() => { }); });
         await PushNotifications.addListener('registrationError', () => { /* Firebase not configured in this build */ });
         // App open: FCM doesn't show the banner itself, so show it as a local notification

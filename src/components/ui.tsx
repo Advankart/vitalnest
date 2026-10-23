@@ -178,7 +178,7 @@ export function Spinner() {
 }
 
 export function ViewOnlyNote() {
-  const { canEdit } = useApp();
+  const { canEdit, role } = useApp();
   if (canEdit) return null;
-  return <div className="mb-3 rounded-2xl bg-amber-50 px-4 py-3 text-[0.8125rem] text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">You have view-only access. Ask the family admin to make you a caregiver to add entries.</div>;
+  return <div className="mb-3 rounded-2xl bg-amber-50 px-4 py-3 text-[0.8125rem] text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">{role === 'viewer' ? 'You have view-only access. Ask the family admin to make you a caregiver to add entries.' : "You can view this person's data. Only they (or a caregiver) can change it."}</div>;
 }

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { t } from '../lib/i18n';
 import { nativeBuild } from '../lib/update';
+import { LANGS, lang, setLang } from '../lib/i18n';
 import { stopPush } from '../lib/push';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
@@ -48,13 +50,13 @@ export default function More() {
         <Avatar name={user?.display_name || user?.username || '?'} color="#0f766e" size={52} />
         <div className="min-w-0 flex-1">
           <div className="truncate font-bold">{user?.display_name || user?.username}</div>
-          <div className="truncate text-xs text-slate-500">@{user?.username} · {membership?.family.name} · {role}</div>
+          <div className="truncate text-xs text-slate-500">@{user?.username} · {membership?.family.name} · {t(role === 'admin' ? 'Admin' : role === 'caregiver' ? 'Caregiver' : 'Viewer')}</div>
         </div>
       </div>
       {demo && <div className="mt-3 rounded-2xl bg-amber-50 px-4 py-3 text-[0.8125rem] text-amber-900 dark:bg-amber-500/10 dark:text-amber-200"><b>Demo mode.</b> Sample data is stored only on this device. Sign out to leave the demo.</div>}
 
       <div className="card mt-4 divide-y divide-slate-100 overflow-hidden dark:divide-white/5">
-        <Item to={patient ? `/patients/${patient.id}` : '/patients'} icon={<UserRound className="h-5 w-5" />} label="Health profile" sub={patient ? `${patient.full_name} · personal & medical details` : undefined} color="#0f766e" />
+        <Item to={patient ? `/patients/${patient.id}` : '/patients'} icon={<UserRound className="h-5 w-5" />} label="Health profile" sub={patient ? t('{name} · personal & medical details', { name: patient.full_name }) : undefined} color="#0f766e" />
         <Item to="/patients" icon={<Users className="h-5 w-5" />} label="All family members" sub="Profiles you track" color="#7c3aed" />
         <Item to="/family" icon={<KeyRound className="h-5 w-5" />} label="Family & sharing" sub="Invite code, logins & roles" color="#0284c7" />
       </div>
@@ -71,6 +73,16 @@ export default function More() {
       </div>
 
       <div className="card mt-4 p-4">
+        <div className="label">Language · மொழி</div>
+        <div className="mb-4 grid grid-cols-2 gap-2" translate="no">
+          {LANGS.map(l => (
+            <button key={l.id} onClick={() => l.id !== lang && setLang(l.id)}
+              className={`rounded-2xl px-3 py-3 text-center font-semibold ring-1 transition ${lang === l.id ? 'bg-brand-600 text-white ring-brand-600' : 'bg-white text-slate-600 ring-slate-200 dark:bg-night-3 dark:text-slate-300 dark:ring-white/10'}`}>
+              <span className="block text-[1.0625rem]">{l.native}</span>
+              {l.native !== l.label && <span className="block text-[0.7rem] opacity-80">{l.label}</span>}
+            </button>
+          ))}
+        </div>
         <div className="label">Text size</div>
         <div className="grid grid-cols-3 gap-2">
           {TEXT_SIZES.map((o, i) => (

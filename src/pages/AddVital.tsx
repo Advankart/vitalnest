@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { t } from '../lib/i18n';
 import { useNavigate, useParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { CalendarClock, Minus, Plus, Trash2 } from 'lucide-react';
@@ -63,7 +64,7 @@ export default function AddVital() {
 
   async function save() {
     const a = Number(v1), b = Number(v2);
-    if (!a || a < meta.min || a > meta.max) { toast(`Enter a value between ${meta.min} and ${meta.max}`, 'err'); return; }
+    if (!a || a < meta.min || a > meta.max) { toast(t('Enter a value between {a} and {b}', { a: meta.min, b: meta.max }), 'err'); return; }
     if (k === 'bp' && (!b || b < 30 || b > 160 || b >= a)) { toast('Check the diastolic (lower) value', 'err'); return; }
     setBusy(true);
     try {
@@ -80,13 +81,13 @@ export default function AddVital() {
   }
 
   async function del(id: string) {
-    if (!confirm('Delete this entry?')) return;
+    if (!confirm(t('Delete this entry?'))) return;
     try { await api().remove('vitals', id); await refreshData(); } catch (e) { toast((e as Error).message, 'err'); }
   }
 
   return (
     <div className="rise">
-      <PageHeader title={`Log ${meta.label}`} subtitle={patient.full_name} />
+      <PageHeader title={t('Log {what}', { what: t(meta.label) })} subtitle={patient.full_name} />
       <ViewOnlyNote />
       {canEdit && k === 'glucose' && (
         <ScanButton<GlucoseScan> kind="glucose" className="mb-4" onResult={r => {
@@ -153,7 +154,7 @@ export default function AddVital() {
 
       {recent.length > 0 && (
         <div className="mt-6">
-          <h2 className="mb-2 px-1 text-[0.9375rem] font-bold">Recent {meta.label.toLowerCase()}</h2>
+          <h2 className="mb-2 px-1 text-[0.9375rem] font-bold">{t('Recent {what}', { what: t(meta.label).toLowerCase() })}</h2>
           <div className="card divide-y divide-slate-100 dark:divide-white/5">
             {recent.map(v => {
               const s = classify(v, patient);
@@ -162,7 +163,7 @@ export default function AddVital() {
                   <span className="h-2.5 w-2.5 rounded-full" style={{ background: STATUS_STYLE[s].dot }} />
                   <div className="flex-1">
                     <div className="font-display font-bold">{fmtVital(v)} <span className="text-xs font-medium text-slate-400">{meta.unit}</span>{v.kind === 'bp' && v.value3 ? <span className="text-xs font-medium text-slate-400"> · {Math.round(v.value3)} bpm</span> : null}</div>
-                    <div className="text-xs text-slate-400">{format(new Date(v.measured_at), 'd MMM, h:mm a')}{v.context ? ` · ${ctxLabel(v.context)}` : ''}{v.notes ? ` · ${v.notes}` : ''}</div>
+                    <div className="text-xs text-slate-400">{format(new Date(v.measured_at), 'd MMM, h:mm a')}{v.context ? ` · ${t(ctxLabel(v.context))}` : ''}{v.notes ? ` · ${v.notes}` : ''}</div>
                   </div>
                   {canEdit && <button onClick={() => del(v.id)} className="p-2 text-slate-300 hover:text-red-500" aria-label="Delete"><Trash2 className="h-4 w-4" /></button>}
                 </div>

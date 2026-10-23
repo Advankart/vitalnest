@@ -7,7 +7,7 @@ export const VAPID_PUBLIC = 'BJte5A8s8ynrnVOZ-eselE1YfdvC34JX1UGqniYW1Yj0AXG0M6A
 
 export interface PushMsg { title: string; body: string; path?: string; patient_id?: string; tag?: string }
 
-interface TokenRow { token: string; platform: 'android' | 'web'; user_id: string }
+interface TokenRow { token: string; platform: 'android' | 'web'; user_id: string; lang?: string }
 
 /* ---------- Firebase (FCM HTTP v1) ---------- */
 let fcmCache: { token: string; exp: number; project: string } | null = null;
@@ -64,13 +64,14 @@ async function sendWeb(token: string, m: PushMsg): Promise<'ok' | 'gone' | 'erro
 }
 
 /** Send to every device of the given users that has the matching alert type switched on. */
-export async function sendToUsers(userIds: string[], pref: 'alerts_vitals' | 'alerts_meds', m: PushMsg) {
+export async function sendToUsers(userIds: string[], pref: 'alerts_vitals' | 'alerts_meds', msg: PushMsg | ((lang: string) => PushMsg)) {
   const ids = [...new Set(userIds)].filter(Boolean);
   if (!ids.length) return { sent: 0 };
-  const rows = await sb<TokenRow[]>(`/rest/v1/push_tokens?select=token,platform,user_id&${pref}=eq.true&user_id=in.(${ids.join(',')})`);
+  const rows = await sb<TokenRow[]>(`/rest/v1/push_tokens?select=token,platform,user_id,lang&${pref}=eq.true&user_id=in.(${ids.join(',')})`);
   let sent = 0;
   const gone: string[] = [];
   await Promise.all(rows.map(async row => {
+    const m = typeof msg === 'function' ? msg(row.lang || 'en') : msg;
     const r = row.platform === 'android' ? await sendFcm(row.token, m) : await sendWeb(row.token, m);
     if (r === 'ok') sent++;
     if (r === 'gone') gone.push(row.token);

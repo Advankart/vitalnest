@@ -1,7 +1,10 @@
 import { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
+import { t as tr } from '../lib/i18n';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { toPng } from 'html-to-image';
-import { FileSpreadsheet, FileText, Image as ImageIcon, MessageCircle, Sheet as SheetIcon, Download } from 'lucide-react';
+import { FileSpreadsheet, FileText, Image as ImageIcon, MessageCircle, Printer, Sheet as SheetIcon, Download } from 'lucide-react';
+import { printHtml } from '../lib/print';
+import { reportHtml } from '../lib/printReport';
 import { useApp } from '../lib/store';
 import { applyInclude, filterRange, INCLUDE_OPTIONS, summarize, summaryText, toCSV, toExcel, toPDF, type ExportData, type IncludeKey } from '../lib/export';
 import { useSearchParams } from 'react-router-dom';
@@ -26,13 +29,13 @@ const ShareCard = forwardRef<HTMLDivElement, { p: Patient; d: ExportData; days: 
   return (
     <div ref={ref} style={{ width: 360, background: '#ffffff', borderRadius: 28, overflow: 'hidden', fontFamily: 'Inter Variable, sans-serif', color: '#0f172a', boxShadow: '0 1px 0 rgba(0,0,0,.02)' }}>
       <div style={{ background: 'radial-gradient(120% 120% at 0% 0%, #14b8a6 0%, #0d9488 40%, #0f766e 75%, #134e4a 100%)', color: '#fff', padding: '22px 22px 20px' }}>
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.12em', opacity: .8 }}>HEALTH UPDATE · LAST {days} DAYS</div>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.12em', opacity: .8 }}>{tr('HEALTH UPDATE · LAST {n} DAYS', { n: days })}</div>
         <div style={{ fontSize: 24, fontWeight: 800, fontFamily: 'Plus Jakarta Sans Variable, sans-serif', marginTop: 6 }}>{p.full_name}</div>
-        <div style={{ fontSize: 12, opacity: .85, marginTop: 2 }}>{[age(p.dob) !== null ? `${age(p.dob)} yrs` : null, CONDITIONS[p.condition].label].filter(Boolean).join(' · ')}</div>
+        <div style={{ fontSize: 12, opacity: .85, marginTop: 2 }}>{[age(p.dob) !== null ? tr('{n} yrs', { n: age(p.dob) }) : null, tr(CONDITIONS[p.condition].label)].filter(Boolean).join(' · ')}</div>
         {lastG && (
           <div style={{ marginTop: 16, display: 'flex', alignItems: 'baseline', gap: 6 }}>
             <span style={{ fontSize: 46, fontWeight: 800, lineHeight: 1, fontFamily: 'Plus Jakarta Sans Variable, sans-serif' }}>{Math.round(lastG.value1)}</span>
-            <span style={{ fontSize: 13, opacity: .85 }}>mg/dL latest · {format(new Date(lastG.measured_at), 'd MMM, h:mm a')}</span>
+            <span style={{ fontSize: 13, opacity: .85 }}>{tr('mg/dL latest · {date}', { date: format(new Date(lastG.measured_at), 'd MMM, h:mm a') })}</span>
           </div>
         )}
       </div>
@@ -68,7 +71,7 @@ const ShareCard = forwardRef<HTMLDivElement, { p: Patient; d: ExportData; days: 
             ))}
           </div>
         )}
-        {s.hypos > 0 && <div style={{ marginTop: 10, background: '#fef2f2', color: '#b91c1c', borderRadius: 14, padding: '8px 12px', fontSize: 11.5, fontWeight: 600 }}>{s.hypos} low sugar reading{s.hypos > 1 ? 's' : ''} (below 70) this period</div>}
+        {s.hypos > 0 && <div style={{ marginTop: 10, background: '#fef2f2', color: '#b91c1c', borderRadius: 14, padding: '8px 12px', fontSize: 11.5, fontWeight: 600 }}>{tr(s.hypos > 1 ? '{n} low sugar readings (below 70) this period' : '{n} low sugar reading (below 70) this period', { n: s.hypos })}</div>}
         <div style={{ marginTop: 14, display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#94a3b8' }}>
           <span style={{ fontWeight: 700, color: '#0f766e' }}>♥ VitalNest</span><span>{format(new Date(), 'd MMM yyyy')}</span>
         </div>
@@ -111,10 +114,18 @@ export default function Export() {
 
   const excel = (share: boolean) => run('xlsx' + share, async () => { const b = toExcel(patient, d, f, t); if (share) { await shareFile(b, `${base}.xlsx`, 'Health data (Excel)'); } else return saveFile(b, `${base}.xlsx`); });
   const csv = () => run('csv', async () => saveFile(toCSV(patient, d), `${base}.csv`));
-  const pdf = (share: boolean) => run('pdf' + share, async () => {
+  const captureCharts = async () => {
     const charts: { title: string; img: string; w: number; h: number }[] = [];
     const pairs: [string, HTMLDivElement | null, boolean][] = [['Blood sugar trend', gRef.current, d.vitals.some(v => v.kind === 'glucose')], ['Blood pressure trend', bpRef.current, d.vitals.some(v => v.kind === 'bp')], ['Heart rate trend', hrRef.current, d.vitals.some(v => v.kind === 'heart_rate')], ['Weight trend', wRef.current, d.vitals.some(v => v.kind === 'weight')]];
     for (const [title, el, has] of pairs) if (el && has) charts.push({ title, img: await toPng(el, { pixelRatio: 2, backgroundColor: '#ffffff' }), w: el.offsetWidth, h: el.offsetHeight });
+    return charts;
+  };
+  const print = () => run('print', async () => {
+    const charts = await captureCharts();
+    await printHtml(reportHtml(patient, d, f, t, charts), base);
+  });
+  const pdf = (share: boolean) => run('pdf' + share, async () => {
+    const charts = await captureCharts();
     const b = toPDF(patient, d, f, t, charts);
     if (share) await shareFile(b, `${base}.pdf`, 'Health report (PDF)');
     else return saveFile(b, `${base}.pdf`);
@@ -122,7 +133,7 @@ export default function Export() {
   const image = () => run('img', async () => {
     const png = await snap(cardRef.current);
     const blob = await (await fetch(png)).blob();
-    const r = await shareFile(blob, `${base}.png`, `${patient.full_name} health update`, summaryText(patient, d, days));
+    const r = await shareFile(blob, `${base}.png`, tr('{name} health update', { name: patient.full_name }), summaryText(patient, d, days));
     if (r === 'downloaded') return 'Image downloaded — attach it in WhatsApp';
   });
   const text = () => run('txt', async () => { await shareText(summaryText(patient, d, days), true); });
@@ -136,7 +147,7 @@ export default function Export() {
 
   return (
     <div className="rise">
-      <PageHeader title={inc.size === 1 && inc.has('meds') ? 'Share medicines' : 'Share & export'} subtitle={`${patient.full_name} · ${d.vitals.length} readings${d.meds.length ? ` · ${d.meds.length} medicines` : ''}`} />
+      <PageHeader title={inc.size === 1 && inc.has('meds') ? 'Share medicines' : 'Share & export'} subtitle={[patient.full_name, tr('{n} readings', { n: d.vitals.length }), d.meds.length ? tr('{n} medicines', { n: d.meds.length }) : ''].filter(Boolean).join(' · ')} />
       <Segmented value={range} onChange={setRange} options={[{ id: '7', label: '7 days' }, { id: '30', label: '30 days' }, { id: '90', label: '90 days' }, { id: 'custom', label: 'Custom' }]} />
       {range === 'custom' && (
         <div className="mt-3 grid grid-cols-2 gap-3">
@@ -175,6 +186,7 @@ export default function Export() {
 
       <h2 className="mb-2 mt-6 px-1 text-[0.9375rem] font-bold">Files</h2>
       <div className="grid gap-2">
+        <Act k="print" icon={<Printer className="h-5 w-5" />} label="Print report" sub="Print or save as PDF from your phone" onClick={print} color="#0f766e" />
         <Act k="pdftrue" icon={<FileText className="h-5 w-5" />} label="PDF report for doctor" sub="Profile, summary, charts, readings & medicines" onClick={() => pdf(true)} color="#dc2626" />
         <Act k="xlsxtrue" icon={<FileSpreadsheet className="h-5 w-5" />} label="Excel workbook" sub="Separate sheets: vitals, sugar, BP, medicines, food, water" onClick={() => excel(true)} color="#16a34a" />
         <div className="grid grid-cols-[repeat(auto-fit,minmax(6rem,1fr))] gap-2">

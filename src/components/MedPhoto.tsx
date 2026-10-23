@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { t } from '../lib/i18n';
 import { createPortal } from 'react-dom';
 import { Pill, Syringe, X } from 'lucide-react';
 import { api } from '../lib/api';
@@ -60,7 +61,7 @@ export function MedThumb({ path, form, name, size = 'md', className }: { path?: 
   }
   return (
     <>
-      <button type="button" onClick={e => { e.stopPropagation(); setOpen(true); }} aria-label={`View photo of ${name ?? 'medicine'}`}
+      <button type="button" onClick={e => { e.stopPropagation(); setOpen(true); }} aria-label={t('View photo of {name}', { name: name ?? t('medicine') })}
         className={cx('shrink-0 overflow-hidden bg-slate-100 ring-1 ring-slate-900/10 dark:bg-white/5 dark:ring-white/10', box, className)}>
         <img src={url} alt="" className="h-full w-full object-cover" loading="lazy" />
       </button>

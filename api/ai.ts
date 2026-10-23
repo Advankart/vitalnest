@@ -93,6 +93,10 @@ const SYSTEM = `You are VitalNest's friendly health coach for Indian families ma
 Rules: use only the numbers given — never invent readings. Be warm, specific and encouraging, in simple English that an elderly parent understands.
 You are not a doctor: never change, start or stop medicines or doses, never diagnose. When numbers are dangerous (sugar < 70 often, > 300, BP ≥ 180/110) or keep getting worse, kindly suggest talking to their doctor.`;
 
+const TAMIL = `
+LANGUAGE: Write every text field in Tamil (தமிழ்) — simple, warm, everyday spoken-style Tamil that an elderly person in Tamil Nadu understands, in Tamil script.
+Keep numbers as digits and keep units/abbreviations as they are (mg/dL, BP, mmHg, kcal, HbA1c). For food items write the common Tamil name (e.g. இட்லி, ராகி தோசை, சுண்டல், காய்கறி கூட்டு); quantities like "2 இட்லி", "1 கிண்ணம் (150 கி)". Enum fields (tone, slot, area, overall) stay in English exactly as defined.`;
+
 const TOOLS = {
   motivation: {
     description: 'A short motivating message for the home screen.',
@@ -173,6 +177,8 @@ export default async function handler(req: any, res: any) {
     if (!user) return res.status(401).json({ error: 'Please sign in again.' });
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
     const kind = body.kind as Kind, pid = String(body.patient_id || '');
+    const lang = body.lang === 'ta' ? 'ta' : 'en';
+    const ckind = lang === 'ta' ? `${kind}_ta` : kind;   // cache key per language
     if (!TOOLS[kind] || !/^[0-9a-f-]{36}$/i.test(pid)) return res.status(400).json({ error: 'Bad request' });
 
     // access check: the person must be visible to this user (row-level security)
@@ -192,7 +198,7 @@ export default async function handler(req: any, res: any) {
     const takenToday = logs.filter(l => l.scheduled_date === today && l.status === 'taken').length;
     const sig = kind === 'motivation' ? `${vitals[0]?.id ?? ''}|${takenToday}` : kind === 'trends' ? `${vitals.length}|${vitals[0]?.id ?? ''}` : `${p.diet_pref ?? ''}|${p.daily_kcal_goal}`;
 
-    const [cached] = await sb<any[]>(`/rest/v1/ai_cache?patient_id=eq.${pid}&kind=eq.${kind}&day=eq.${day}&select=content,sig,created_at`);
+    const [cached] = await sb<any[]>(`/rest/v1/ai_cache?patient_id=eq.${pid}&kind=eq.${ckind}&day=eq.${day}&select=content,sig,created_at`);
     const age = cached ? Date.now() - +new Date(cached.created_at) : Infinity;
     const fresh = cached && (
       kind === 'motivation' ? (cached.sig === sig || age < 10 * 60_000)
@@ -204,19 +210,19 @@ export default async function handler(req: any, res: any) {
     const summary = summarise(p, vitals, meds, logs, meals);
     let extra = '';
     if (kind === 'diet') {
-      const [y] = await sb<any[]>(`/rest/v1/ai_cache?patient_id=eq.${pid}&kind=eq.diet&day=lt.${day}&select=content&order=day.desc&limit=1`);
+      const [y] = await sb<any[]>(`/rest/v1/ai_cache?patient_id=eq.${pid}&kind=eq.${ckind}&day=lt.${day}&select=content&order=day.desc&limit=1`);
       const titles = (y?.content?.meals || []).map((m: any) => m.title).join('; ');
       extra = `Today is ${new Intl.DateTimeFormat('en-IN', { timeZone: TZ, weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())}.${titles ? ` Do not repeat these dishes from yesterday: ${titles}.` : ''}${body.refresh ? ' Give a different menu from before.' : ''}`;
     }
     const t = TOOLS[kind];
     const { model, out } = await callClaude({
-      models: TEXT_MODELS, system: SYSTEM, tool: t, maxTokens: t.maxTokens, temperature: kind === 'trends' ? 0.2 : 0.7,
+      models: TEXT_MODELS, system: SYSTEM + (lang === 'ta' ? TAMIL : ''), tool: t, maxTokens: t.maxTokens, temperature: kind === 'trends' ? 0.2 : 0.7,
       content: [{ type: 'text', text: (t.task as any)(summary, extra) + (kind === 'motivation' ? `\nLocal hour now: ${localHour()}.` : '') }],
     });
     const content = { ...out, model };
     await sb('/rest/v1/ai_cache?on_conflict=patient_id,kind,day', {
       method: 'POST', headers: { Prefer: 'resolution=merge-duplicates' },
-      body: JSON.stringify({ patient_id: pid, kind, day, sig, content, created_at: new Date().toISOString() }),
+      body: JSON.stringify({ patient_id: pid, kind: ckind, day, sig, content, created_at: new Date().toISOString() }),
     });
     return res.status(200).json({ ...content, cached: false, generated_at: new Date().toISOString() });
   } catch (e: any) {

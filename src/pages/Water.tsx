@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { t } from '../lib/i18n';
 import { format, isToday, subDays } from 'date-fns';
 import { GlassWater, Trash2 } from 'lucide-react';
 import { useApp } from '../lib/store';
@@ -36,10 +37,10 @@ export default function Water() {
             <div className="absolute -top-2 left-0 h-4 w-[200%] animate-[wave_3s_linear_infinite] rounded-[50%] bg-sky-400/70" />
           </div>
           <div className="absolute inset-0 grid place-items-center text-center">
-            <div className={pct > 45 ? 'text-white' : ''}><div className="font-display text-3xl font-extrabold">{(total / 1000).toFixed(2)}</div><div className="text-xs font-semibold opacity-80">of {(goal / 1000).toFixed(1)} L</div></div>
+            <div className={pct > 45 ? 'text-white' : ''}><div className="font-display text-3xl font-extrabold">{(total / 1000).toFixed(2)}</div><div className="text-xs font-semibold opacity-80">{t('of {n} L', { n: (goal / 1000).toFixed(1) })}</div></div>
           </div>
         </div>
-        <p className="mt-4 text-sm text-slate-500">{total >= goal ? 'Goal reached today 🎉' : `${Math.ceil((goal - total) / 250)} more glasses to reach your goal`}</p>
+        <p className="mt-4 text-sm text-slate-500">{total >= goal ? 'Goal reached today 🎉' : t('{n} more glasses to reach your goal', { n: Math.ceil((goal - total) / 250) })}</p>
         {patient.condition === 'type2_cardiac' && <p className="mt-1 text-center text-[0.7188rem] text-slate-400">If your doctor set a fluid limit for your heart, use that as your goal in the health profile.</p>}
       </div>
       <div className="mt-4 grid grid-cols-[repeat(auto-fit,minmax(4.75rem,1fr))] gap-2">

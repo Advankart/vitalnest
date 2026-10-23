@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { t } from '../lib/i18n';
 import { Camera, ImageUp, Loader2, Plus, Sparkles } from 'lucide-react';
 import { scanPhoto, type ScanKind } from '../lib/scan';
 import { useApp } from '../lib/store';
@@ -29,9 +30,9 @@ export function ScanButton<T>({ kind, onResult, onFiles, className }: { kind: Sc
     try {
       const r = await scanPhoto<T & { found: boolean; note?: string; confidence?: string }>(kind, files);
       if (MULTI[kind]) setShots(files);
-      if (!r.found) { toast(r.note ? `Couldn't read it clearly: ${r.note}` : "Couldn't read it clearly — try again closer, without glare", 'err'); return; }
+      if (!r.found) { toast(r.note ? t("Couldn't read it clearly: {note}", { note: r.note }) : t("Couldn't read it clearly — try again closer, without glare"), 'err'); return; }
       onResult(r);
-      toast(r.confidence === 'low' ? `Filled from photo — please double-check${r.note ? ` (${r.note})` : ''}` : 'Filled from photo ✓ Please check before saving');
+      toast(r.confidence === 'low' ? t('Filled from photo — please double-check') + (r.note ? ` (${r.note})` : '') : 'Filled from photo ✓ Please check before saving');
     } catch (e) { toast((e as Error).message, 'err'); }
     finally { setBusy(false); for (const x of [cam, gal, back]) if (x.current) x.current.value = ''; }
   }
@@ -54,7 +55,7 @@ export function ScanButton<T>({ kind, onResult, onFiles, className }: { kind: Sc
       </div>
       {MULTI[kind] && shots.length > 0 && shots.length < 3 && (
         <button type="button" disabled={busy} onClick={() => back.current?.click()} className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-brand-300 py-2.5 text-[0.8125rem] font-semibold text-brand-700 disabled:opacity-50 dark:border-brand-500/40 dark:text-brand-300">
-          <Plus className="h-4 w-4" />{kind === 'prescription' ? `Add next page (${shots.length}/3)` : `Add other side of the pack (${shots.length}/3) — improves composition`}
+          <Plus className="h-4 w-4" />{kind === 'prescription' ? t('Add next page ({n}/3)', { n: shots.length }) : t('Add other side of the pack ({n}/3) — improves composition', { n: shots.length })}
         </button>
       )}
     </div>

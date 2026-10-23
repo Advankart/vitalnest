@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { t as tr, tDose } from '../lib/i18n';
 import { addDays, format, isToday } from 'date-fns';
 import { AlarmClock, Camera, Check, ChevronLeft, ChevronRight, FileText, Pencil, Pill, Plus, Share2, Trash2, X } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -46,7 +47,7 @@ function MedForm({ med, onClose }: { med: Partial<Medicine> | null; onClose: () 
     } catch (e) { toast((e as Error).message, 'err'); } finally { setBusy(false); }
   }
   async function del() {
-    if (!m.id || !confirm(`Delete ${m.name}?`)) return;
+    if (!m.id || !confirm(tr('Delete {name}?', { name: m.name }))) return;
     try { await api().remove('medicines', m.id); await refreshData(); onClose(); } catch (e) { toast((e as Error).message, 'err'); }
   }
 
@@ -146,16 +147,20 @@ export default function Meds() {
 
   return (
     <div className="rise">
-      <div className="mb-4 flex items-center justify-between pt-1">
-        <div><h1 className="text-[1.5rem] font-extrabold">Medicines</h1><p className="text-[0.8125rem] text-slate-500">{patient.full_name}</p></div>
-        <div className="flex gap-2">
-          {data.meds.length > 0 && <Button size="sm" variant="soft" onClick={() => nav('/export?only=meds')} aria-label="Share medicines"><Share2 className="h-4 w-4" /></Button>}
-          {canEdit && <Button size="sm" variant="soft" onClick={() => setRx(true)} aria-label="Add from prescription"><FileText className="h-4 w-4" /><span className="lg-hide">Prescription</span></Button>}
-          {canEdit && <Button size="sm" onClick={() => setEdit(null)}><Plus className="h-4 w-4" />Add</Button>}
+      <div className="mb-4 pt-1">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0"><h1 className="text-[1.5rem] font-extrabold leading-tight">Medicines</h1><p className="truncate text-[0.8125rem] text-slate-500">{patient.full_name}</p></div>
+          {data.meds.length > 0 && <Button size="sm" variant="soft" className="shrink-0" onClick={() => nav('/export?only=meds')} aria-label="Share medicines"><Share2 className="h-4 w-4" /></Button>}
         </div>
+        {canEdit && (
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <Button size="sm" variant="soft" className="min-w-0" onClick={() => setRx(true)}><FileText className="h-4 w-4 shrink-0" /><span className="truncate">Prescription</span></Button>
+            <Button size="sm" className="min-w-0" onClick={() => setEdit(null)}><Plus className="h-4 w-4 shrink-0" /><span className="truncate">Add medicine</span></Button>
+          </div>
+        )}
       </div>
       <ViewOnlyNote />
-      <Segmented value={tab} onChange={setTab} options={[{ id: 'schedule', label: 'Schedule' }, { id: 'all', label: `All medicines (${data.meds.length})` }]} />
+      <Segmented value={tab} onChange={setTab} options={[{ id: 'schedule', label: 'Schedule' }, { id: 'all', label: tr('All medicines ({n})', { n: data.meds.length }) }]} />
 
       {lowStock.length > 0 && (
         <div className="mt-4 rounded-3xl bg-amber-50 p-4 text-[0.8125rem] text-amber-900 ring-1 ring-amber-100 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/20">
@@ -186,7 +191,7 @@ export default function Meds() {
                           <MedThumb path={med.photo_path} form={med.form} name={med.name} />
                           <div className="min-w-0 flex-1">
                             <div className={cx('break-words font-semibold', done && 'text-slate-400 line-through')}>{med.name} <span className="text-[0.8125rem] font-normal text-slate-400">{med.strength}</span></div>
-                            <div className="text-xs text-slate-500">{[med.dose, FOOD_REL[med.food_relation ?? '']].filter(Boolean).join(' · ')}</div>
+                            <div className="text-xs text-slate-500">{[tDose(med.dose), tr(FOOD_REL[med.food_relation ?? ''] ?? '')].filter(Boolean).join(' · ')}</div>
                             {missed && <div className="text-[0.6875rem] font-semibold text-amber-600">Not marked yet</div>}
                           </div>
                           <button onClick={() => toggle(med, t)} aria-label="Mark taken" className={cx('grid h-11 w-11 shrink-0 place-items-center rounded-full ring-2 transition active:scale-90', done ? 'bg-brand-600 text-white ring-brand-600' : 'text-slate-300 ring-slate-200 dark:ring-white/10')}>

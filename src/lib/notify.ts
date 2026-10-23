@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core';
+import { t as tr } from './i18n';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { api } from './api';
 import type { Medicine, Patient, Reminder } from './types';
@@ -36,7 +37,7 @@ function buildSlots(patients: Patient[], meds: Medicine[], rems: Reminder[]): Sl
     for (const t of m.times) {
       out.push({
         key: `med:${m.id}:${t}`, time: t, days: m.days?.length ? m.days : [0, 1, 2, 3, 4, 5, 6],
-        title: `💊 ${who(m.patient_id)}Time for ${m.name}`,
+        title: `💊 ${who(m.patient_id)}${tr('Time for {name}', { name: m.name })}`,
         body: [m.dose, m.strength, m.food_relation ? m.food_relation.replace('_', ' ') : ''].filter(Boolean).join(' · '),
         extra: { type: 'med', medicine_id: m.id, patient_id: m.patient_id, time: t },
       });
@@ -45,11 +46,12 @@ function buildSlots(patients: Patient[], meds: Medicine[], rems: Reminder[]): Sl
   for (const r of rems) {
     if (!r.enabled) continue;
     const icon = r.kind === 'water' ? '💧' : r.kind === 'bp' ? '🩺' : r.kind === 'weight' ? '⚖️' : r.kind === 'heart_rate' ? '❤️' : '🩸';
-    const body = r.kind === 'water' ? 'Have a glass of water and log it.' :
-      `Measure ${VITALS[r.kind as keyof typeof VITALS]?.label.toLowerCase() ?? 'your vitals'} and log it in VitalNest.`;
+    const vl = VITALS[r.kind as keyof typeof VITALS]?.label;
+    const body = r.kind === 'water' ? tr('Have a glass of water and log it.') :
+      tr('Measure {what} and log it in VitalNest.', { what: vl ? tr(vl).toLowerCase() : tr('your vitals') });
     out.push({
       key: `rem:${r.id}`, time: r.time, days: r.days?.length ? r.days : [0, 1, 2, 3, 4, 5, 6],
-      title: `${icon} ${who(r.patient_id)}${r.label}`, body,
+      title: `${icon} ${who(r.patient_id)}${tr(r.label)}`, body,
       extra: { type: 'vital', kind: r.kind, patient_id: r.patient_id },
     });
   }
@@ -96,11 +98,11 @@ export async function rescheduleAll(patients: Patient[]) {
 export async function initNotifications(navigate: (path: string) => void) {
   if (isNative()) {
     try {
-      await LocalNotifications.createChannel({ id: 'reminders', name: 'Medicine & vitals reminders', description: 'Medicine times and measuring reminders', importance: 5, visibility: 1, vibration: true, lights: true });
+      await LocalNotifications.createChannel({ id: 'reminders', name: tr('Medicine & vitals reminders'), description: tr('Medicine times and measuring reminders'), importance: 5, visibility: 1, vibration: true, lights: true });
       await LocalNotifications.registerActionTypes({
         types: [
-          { id: 'MED', actions: [{ id: 'taken', title: '✓ Mark taken' }, { id: 'snooze', title: 'Snooze 10 min' }] },
-          { id: 'VITAL', actions: [{ id: 'log', title: 'Log now', foreground: true }, { id: 'snooze', title: 'Snooze 15 min' }] },
+          { id: 'MED', actions: [{ id: 'taken', title: tr('✓ Mark taken') }, { id: 'snooze', title: tr('Snooze 10 min') }] },
+          { id: 'VITAL', actions: [{ id: 'log', title: tr('Log now'), foreground: true }, { id: 'snooze', title: tr('Snooze 15 min') }] },
         ],
       });
       await LocalNotifications.addListener('localNotificationActionPerformed', async (ev) => {
@@ -111,7 +113,7 @@ export async function initNotifications(navigate: (path: string) => void) {
         }
         if (ev.actionId === 'snooze') {
           const mins = x.type === 'med' ? 10 : 15;
-          await LocalNotifications.schedule({ notifications: [{ id: Math.floor(Math.random() * 1e6) + 1e6, title: n.title ?? 'Reminder', body: n.body ?? '', channelId: 'reminders', extra: x, actionTypeId: n.actionTypeId, schedule: { at: new Date(Date.now() + mins * 60000), allowWhileIdle: true } }] });
+          await LocalNotifications.schedule({ notifications: [{ id: Math.floor(Math.random() * 1e6) + 1e6, title: n.title ?? tr('Reminder'), body: n.body ?? '', channelId: 'reminders', extra: x, actionTypeId: n.actionTypeId, schedule: { at: new Date(Date.now() + mins * 60000), allowWhileIdle: true } }] });
           return;
         }
         if (x.patient_id) { try { localStorage.setItem('vn_patient', x.patient_id); } catch { /* ignore */ } }
@@ -149,10 +151,10 @@ export async function openExactAlarmSetting() {
 
 export async function testNotification() {
   if (isNative()) {
-    await LocalNotifications.schedule({ notifications: [{ id: 99, title: '✅ VitalNest reminders are working', body: 'You will be reminded like this for medicines and measurements.', channelId: 'reminders', schedule: { at: new Date(Date.now() + 5000), allowWhileIdle: true } }] });
+    await LocalNotifications.schedule({ notifications: [{ id: 99, title: tr('✅ VitalNest reminders are working'), body: tr('You will be reminded like this for medicines and measurements.'), channelId: 'reminders', schedule: { at: new Date(Date.now() + 5000), allowWhileIdle: true } }] });
     return;
   }
-  await showWeb('✅ VitalNest reminders are working', 'Reminders appear while VitalNest is open in this browser.');
+  await showWeb(tr('✅ VitalNest reminders are working'), tr('Reminders appear while VitalNest is open in this browser.'));
 }
 
 /* ---------- Web: reminders while the app is open ---------- */

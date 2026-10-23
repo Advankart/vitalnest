@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
+import { t } from '../lib/i18n';
 import { Link } from 'react-router-dom';
 import { format, subDays } from 'date-fns';
 import { Share2, TrendingDown, TrendingUp, Minus as Flat } from 'lucide-react';
@@ -88,7 +89,7 @@ export default function Trends() {
             <Stat label="Highest" value={Math.round(gs.max).toString()} unit="mg/dL" />
             <Stat label="Est. HbA1c" value={gs.n >= 10 ? eA1c(gs.avg).toFixed(1) : '—'} unit="%" />
           </div>
-          <p className="mt-2 text-[0.7188rem] text-slate-400">{gs.n} readings · variability (CV) {gs.avg ? (gs.sd / gs.avg * 100).toFixed(0) : 0}% {gs.avg && gs.sd / gs.avg > 0.36 ? '— high, discuss with doctor' : ''}. Dots are coloured by status; green band = 70–180 mg/dL.</p>
+          <p className="mt-2 text-[0.7188rem] text-slate-400">{t('{n} readings · variability (CV) {cv}%', { n: gs.n, cv: gs.avg ? (gs.sd / gs.avg * 100).toFixed(0) : 0 })} {gs.avg && gs.sd / gs.avg > 0.36 ? t('— high, discuss with doctor') : ''}. {t('Dots are coloured by status; green band = 70–180 mg/dL.')}</p>
         </> : <p className="py-6 text-center text-sm text-slate-400">No sugar readings in this period</p>}
       </Card>
 
@@ -116,7 +117,7 @@ export default function Trends() {
             <BPChart vitals={bp} patient={patient} days={days} />
             <div className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(6.5rem,1fr))] gap-2">
               <Stat label="Average" value={`${Math.round(sys.avg)}/${Math.round(dia.avg)}`} unit="mmHg" />
-              <Stat label="Highest" value={`${Math.round(sys.max)}`} unit="sys" />
+              <Stat label="Highest" value={`${Math.round(sys.max)}`} unit={t('sys')} />
               <Stat label="Above target" value={`${Math.round(bp.filter(v => v.value1 > patient.target_sys_max || Number(v.value2) > patient.target_dia_max).length / bp.length * 100)}`} unit="%" />
             </div>
           </> : <p className="py-6 text-center text-sm text-slate-400">No BP readings in this period</p>}
@@ -155,13 +156,13 @@ export default function Trends() {
 
       <Card title="Medicine adherence" right={<span className="font-display text-lg font-bold" style={{ color: adh.pct >= 90 ? '#059669' : adh.pct >= 75 ? '#d97706' : '#dc2626' }}>{adh.due ? `${adh.pct.toFixed(0)}%` : '—'}</span>}>
         <div className="h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-white/5"><div className="h-full rounded-full bg-brand-500" style={{ width: `${adh.pct}%` }} /></div>
-        <p className="mt-2 text-[0.75rem] text-slate-500">{adh.taken} of {adh.due} doses marked taken in the last {Math.min(days, 90)} days</p>
+        <p className="mt-2 text-[0.75rem] text-slate-500">{t('{a} of {b} doses marked taken in the last {n} days', { a: adh.taken, b: adh.due, n: Math.min(days, 90) })}</p>
       </Card>
 
-      <Card title={`Calories · last ${barDays} days`}>
+      <Card title={t('Calories · last {n} days', { n: barDays })}>
         <DailyBars rows={kcalRows} color="#16a34a" unit="kcal" goal={patient.daily_kcal_goal} />
       </Card>
-      <Card title={`Water · last ${barDays} days`}>
+      <Card title={t('Water · last {n} days', { n: barDays })}>
         <DailyBars rows={waterRows} color="#0284c7" unit="ml" goal={patient.daily_water_goal_ml} />
       </Card>
     </div>

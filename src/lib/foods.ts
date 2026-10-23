@@ -1,3 +1,4 @@
+import { TA } from './i18n/ta';
 /* Common Indian foods — approximate values per typical home serving.
    Sources: IFCT 2017 / NIN tables and standard recipe estimates. Values vary with recipe & oil. */
 export interface Food { name: string; unit: string; kcal: number; carbs: number; protein: number; cat: string; gi?: 'low' | 'med' | 'high' }
@@ -249,8 +250,8 @@ export function searchFoods(q: string, extra: Food[] = []): Food[] {
   const words = s.split(/\s+/);
   return all
     .map(f => {
-      const n = f.name.toLowerCase();
-      if (!words.every(w => n.includes(w) || f.cat.toLowerCase().includes(w))) return null;
+      const n = (f.name + ' ' + (TA[f.name] ?? '')).toLowerCase();
+      if (!words.every(w => n.includes(w) || f.cat.toLowerCase().includes(w) || (TA[f.cat] ?? '').includes(w))) return null;
       return { f, score: n.startsWith(s) ? 0 : n.includes(s) ? 1 : 2 };
     })
     .filter(Boolean)

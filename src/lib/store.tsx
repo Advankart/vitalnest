@@ -25,6 +25,8 @@ interface Ctx {
   data: PatientData;
   loading: boolean;
   canEdit: boolean;
+  memberIds: string[];
+  canEditFor(p: Patient | null | undefined): boolean;
   selectFamily(id: string): void;
   selectPatient(id: string): void;
   refreshAuth(): Promise<void>;
@@ -32,6 +34,19 @@ interface Ctx {
   refreshData(): Promise<void>;
   toast(msg: string, kind?: 'ok' | 'err'): void;
   toasts: { id: number; msg: string; kind: 'ok' | 'err' }[];
+}
+
+/**
+ * Who may change a person's health data:
+ *  - the person themself (profile linked to their login)
+ *  - a caregiver
+ *  - an admin, only for profiles that are NOT linked to another member's login
+ * (so two admins cannot edit each other's data). Mirrors can_edit_patient() in the database.
+ */
+export function canEditPatient(p: Patient | null | undefined, role: Role, userId: string | undefined, memberIds: string[]) {
+  if (!p || !userId) return false;
+  if (p.linked_user_id === userId || role === 'caregiver') return true;
+  return role === 'admin' && (!p.linked_user_id || !memberIds.includes(p.linked_user_id));
 }
 
 const AppCtx = createContext<Ctx>(null as unknown as Ctx);
@@ -47,6 +62,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [familyId, setFamilyId] = useState<string | null>(get('vn_family'));
   const [patients, setPatients] = useState<Patient[]>([]);
   const [patientsReady, setPatientsReady] = useState(false);
+  const [memberIds, setMemberIds] = useState<string[]>([]);
+  const openedFor = useRef<string | null>(null);   // user whose own profile was picked on this app open
   const [patientId, setPatientId] = useState<string | null>(get('vn_patient'));
   const [data, setData] = useState<PatientData>(EMPTY);
   const [loading, setLoading] = useState(false);
@@ -93,9 +110,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const refreshPatients = useCallback(async () => {
     if (!familyId) { setPatients([]); setPatientsReady(true); return; }
     await reloadMemberships();
-    const ps = await api().patients(familyId).catch(() => [] as Patient[]);
+    const [ps, people] = await Promise.all([
+      api().patients(familyId).catch(() => [] as Patient[]),
+      api().familyPeople(familyId).catch(() => []),
+    ]);
+    setMemberIds(people.map(x => x.user_id));
     setPatients(ps);
     setPatientsReady(true);
+    const uid = userIdRef.current;
+    // On every app open, show the signed-in person's own profile first (if they have one).
+    if (uid && openedFor.current !== uid) {
+      openedFor.current = uid;
+      const mine = ps.find(p => p.linked_user_id === uid);
+      if (mine) { setPatientId(mine.id); return; }
+    }
     setPatientId(prev => (prev && ps.some(p => p.id === prev)) ? prev : ps[0]?.id ?? null);
   }, [familyId, reloadMemberships]);
 
@@ -146,15 +174,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     rescheduleAll(patients).catch(() => { /* ignore */ });
   }, [user, patients, data.meds, data.reminders]);
 
-  const canEdit = role === 'admin' || role === 'caregiver' || (!!patient && patient.linked_user_id === user?.id);
+  const canEditFor = useCallback((p: Patient | null | undefined) => canEditPatient(p, role, user?.id, memberIds), [role, user?.id, memberIds]);
+  const canEdit = canEditFor(patient);
 
   const value = useMemo<Ctx>(() => ({
-    ready, user, memberships, membership, role, patients, patientsReady, patient, data, loading, canEdit,
+    ready, user, memberships, membership, role, patients, patientsReady, patient, data, loading, canEdit, memberIds, canEditFor,
     selectFamily: (id) => setFamilyId(id),
     selectPatient: (id) => setPatientId(id),
     refreshAuth: async () => { userIdRef.current = '__force'; await refreshAuth(); },
     refreshPatients, refreshData, toast, toasts,
-  }), [ready, user, memberships, membership, role, patients, patientsReady, patient, data, loading, canEdit, refreshAuth, refreshPatients, refreshData, toast, toasts]);
+  }), [ready, user, memberships, membership, role, patients, patientsReady, patient, data, loading, canEdit, memberIds, canEditFor, refreshAuth, refreshPatients, refreshData, toast, toasts]);
 
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;
 }

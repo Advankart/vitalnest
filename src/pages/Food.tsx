@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { t } from '../lib/i18n';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { addDays, format, isToday } from 'date-fns';
@@ -24,7 +25,7 @@ export function FoodLog() {
   const kcal = meals.reduce((a, b) => a + Number(b.total_kcal), 0), carbs = meals.reduce((a, b) => a + Number(b.total_carbs), 0), protein = meals.reduce((a, b) => a + Number(b.total_protein), 0);
 
   async function del(id: string) {
-    if (!confirm('Delete this meal?')) return;
+    if (!confirm(t('Delete this meal?'))) return;
     try { await api().remove('meals', id); await refreshData(); } catch (e) { toast((e as Error).message, 'err'); }
   }
 
@@ -38,12 +39,12 @@ export function FoodLog() {
       </div>
       <div className="card flex items-center gap-5 p-5">
         <Ring pct={kcal / patient.daily_kcal_goal * 100} size={96} stroke={9} color={kcal > patient.daily_kcal_goal ? '#f97316' : '#22c55e'}>
-          <div className="text-center"><div className="font-display text-xl font-extrabold leading-none">{Math.round(kcal)}</div><div className="text-[0.625rem] text-slate-400">of {patient.daily_kcal_goal}</div></div>
+          <div className="text-center"><div className="font-display text-xl font-extrabold leading-none">{Math.round(kcal)}</div><div className="text-[0.625rem] text-slate-400">{t('of {n}', { n: patient.daily_kcal_goal })}</div></div>
         </Ring>
         <div className="grid flex-1 grid-cols-2 gap-3">
           <div><div className="text-[0.7188rem] text-slate-500">Carbs</div><div className="font-display text-xl font-bold">{Math.round(carbs)}<span className="text-xs font-medium text-slate-400"> g</span></div></div>
           <div><div className="text-[0.7188rem] text-slate-500">Protein</div><div className="font-display text-xl font-bold">{Math.round(protein)}<span className="text-xs font-medium text-slate-400"> g</span></div></div>
-          <div className="col-span-2 text-[0.7188rem] text-slate-400">{kcal <= patient.daily_kcal_goal ? `${Math.round(patient.daily_kcal_goal - kcal)} kcal left today` : `${Math.round(kcal - patient.daily_kcal_goal)} kcal over goal`}</div>
+          <div className="col-span-2 text-[0.7188rem] text-slate-400">{kcal <= patient.daily_kcal_goal ? t('{n} kcal left today', { n: Math.round(patient.daily_kcal_goal - kcal) }) : t('{n} kcal over goal', { n: Math.round(kcal - patient.daily_kcal_goal) })}</div>
         </div>
       </div>
       <div className="mt-4 space-y-3">
@@ -58,7 +59,7 @@ export function FoodLog() {
             <ul className="mt-2 space-y-1 text-[0.8125rem] text-slate-600 dark:text-slate-300">
               {m.items.map((it, i) => <li key={i} className="flex justify-between"><span>{it.qty} × {it.name} <span className="text-slate-400">({it.unit})</span></span><span className="text-slate-400">{Math.round(it.kcal)}</span></li>)}
             </ul>
-            <div className="mt-2 text-[0.7188rem] text-slate-400">{Math.round(m.total_carbs)} g carbs · {Math.round(m.total_protein)} g protein</div>
+            <div className="mt-2 text-[0.7188rem] text-slate-400">{t('{c} g carbs · {p} g protein', { c: Math.round(m.total_carbs), p: Math.round(m.total_protein) })}</div>
           </div>
         )))}
       </div>
@@ -122,7 +123,7 @@ export function AddMeal() {
 
       <div className="relative mt-4">
         <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-        <input className="field pl-12" value={q} onChange={e => { setQ(e.target.value); setOff(null); }} placeholder={`Search ${FOODS.length}+ Indian foods — idli, dal, roti…`} />
+        <input className="field pl-12" value={q} onChange={e => { setQ(e.target.value); setOff(null); }} placeholder={t('Search {n}+ Indian foods — idli, dal, roti…', { n: FOODS.length })} />
         {q && <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400" aria-label="Clear"><X className="h-4 w-4" /></button>}
       </div>
 
@@ -132,7 +133,7 @@ export function AddMeal() {
             <div key={it.name} className="flex items-center gap-3 px-4 py-3">
               <div className="min-w-0 flex-1">
                 <div className="truncate text-[0.875rem] font-semibold">{it.name}</div>
-                <div className="text-xs text-slate-400">{Math.round(it.kcal)} kcal · {Math.round(it.carbs)} g carbs · per {it.unit}</div>
+                <div className="text-xs text-slate-400">{t('{k} kcal · {c} g carbs · per {u}', { k: Math.round(it.kcal), c: Math.round(it.carbs), u: t(it.unit) })}</div>
               </div>
               <div className="flex items-center gap-1.5">
                 <button onClick={() => setQty(i, it.qty - (it.qty <= 1 ? 0.5 : 1))} className="grid h-8 w-8 place-items-center rounded-full bg-slate-100 dark:bg-white/5" aria-label="Less"><Minus className="h-4 w-4" /></button>
@@ -151,7 +152,7 @@ export function AddMeal() {
               <button key={f.name + f.unit} onClick={() => add(f)} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-white/5">
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[0.875rem] font-medium">{f.name}</div>
-                  <div className="text-xs text-slate-400">per {f.unit} · {f.carbs} g carbs{f.gi ? <span className={GI_STYLE[f.gi]}> · {f.gi} GI</span> : null}</div>
+                  <div className="text-xs text-slate-400">{t('per {u} · {c} g carbs', { u: t(f.unit), c: f.carbs })}{f.gi ? <span className={GI_STYLE[f.gi]}> · {f.gi} GI</span> : null}</div>
                 </div>
                 <div className="text-right"><div className="font-display font-bold">{f.kcal}</div><div className="text-[0.625rem] text-slate-400">kcal</div></div>
                 <Plus className="h-5 w-5 text-brand-600" />
@@ -173,7 +174,7 @@ export function AddMeal() {
       {createPortal(
       <div className={cx('fixed inset-x-0 bottom-24 z-30 mx-auto max-w-xl px-4 transition', items.length ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-4 opacity-0')}>
         <div className="flex items-center gap-3 rounded-3xl bg-ink p-3 pl-5 text-white shadow-2xl dark:bg-white dark:text-ink">
-          <div className="flex-1"><div className="font-display text-lg font-bold">{Math.round(tot.kcal)} kcal</div><div className="text-xs opacity-70">{Math.round(tot.carbs)} g carbs · {Math.round(tot.protein)} g protein · {items.length} item{items.length === 1 ? "" : "s"}</div></div>
+          <div className="flex-1"><div className="font-display text-lg font-bold">{Math.round(tot.kcal)} kcal</div><div className="text-xs opacity-70">{t(items.length === 1 ? '{c} g carbs · {p} g protein · {n} item' : '{c} g carbs · {p} g protein · {n} items', { c: Math.round(tot.carbs), p: Math.round(tot.protein), n: items.length })}</div></div>
           <Button onClick={save} loading={busy} disabled={!canEdit}>Save meal</Button>
         </div>
       </div>,

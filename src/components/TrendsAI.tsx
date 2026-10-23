@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { t } from '../lib/i18n';
 import { AlertTriangle, CheckCircle2, Eye, Lightbulb, RefreshCw, Sparkles, Stethoscope } from 'lucide-react';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { useApp } from '../lib/store';
@@ -43,7 +44,7 @@ export function TrendsAI() {
       <div className="p-4">
         {!a && (
           <div className="text-center">
-            <p className="mb-3 text-[0.8438rem] text-slate-500">Get a plain-language summary of how {patient.full_name.split(' ')[0]}'s readings are changing, what's going well and what to watch.</p>
+            <p className="mb-3 text-[0.8438rem] text-slate-500">{t("Get a plain-language summary of how {name}'s readings are changing, what's going well and what to watch.", { name: patient.full_name.split(' ')[0] })}</p>
             <Button loading={busy} onClick={() => run()}><Sparkles className="h-4 w-4" />{busy ? 'Analysing…' : 'Analyse my trends'}</Button>
             {err && <p className="mt-2 text-[0.8125rem] text-red-600">{err}</p>}
           </div>
@@ -84,7 +85,7 @@ export function TrendsAI() {
                 <Stethoscope className="mt-0.5 h-4 w-4 shrink-0" />{a.doctor_note}
               </div>
             )}
-            <p className="text-[0.6875rem] text-slate-400">AI analysis{a.generated_at ? ` · ${formatDistanceToNowStrict(new Date(a.generated_at), { addSuffix: true })}` : ''}. Not medical advice — always follow your doctor.</p>
+            <p className="text-[0.6875rem] text-slate-400">{t('AI analysis')}{a.generated_at ? ` · ${formatDistanceToNowStrict(new Date(a.generated_at), { addSuffix: true })}` : ''}. {t('Not medical advice — always follow your doctor.')}</p>
             {err && <p className="text-[0.8125rem] text-red-600">{err}</p>}
           </div>
         )}

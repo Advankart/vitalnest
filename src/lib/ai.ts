@@ -1,6 +1,7 @@
 import { api } from './api';
 import { API_BASE } from './scan';
 import { dayKey } from './health';
+import { lang } from './i18n';
 
 export type AIKind = 'motivation' | 'trends' | 'diet';
 export interface Motivation { tone: 'great' | 'good' | 'keep_going' | 'attention'; emoji: string; headline: string; message: string }
@@ -22,7 +23,7 @@ export function currentSlot(d = new Date()): MealSlot {
 
 const mem = new Map<string, { at: number; v: unknown }>();
 const TTL: Record<AIKind, number> = { motivation: 30 * 60_000, trends: 6 * 3600_000, diet: 12 * 3600_000 };
-const keyOf = (kind: AIKind, pid: string, extra = '') => `vn_ai_${kind}_${pid}_${dayKey(new Date())}${extra}`;
+const keyOf = (kind: AIKind, pid: string, extra = '') => `vn_ai_${kind}_${lang}_${pid}_${dayKey(new Date())}${extra}`;
 
 export function cachedAI<T>(kind: AIKind, pid: string, extra = ''): T | null {
   const k = keyOf(kind, pid, extra);
@@ -42,7 +43,7 @@ export async function getAI<T>(kind: AIKind, pid: string, opts: { refresh?: bool
   if (!token) throw new Error('AI insights need you to be signed in (not available in demo mode).');
   const r = await fetch(`${API_BASE}/api/ai`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ kind, patient_id: pid, refresh: !!opts.refresh }),
+    body: JSON.stringify({ kind, patient_id: pid, refresh: !!opts.refresh, lang }),
   });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(j.error || 'AI is not available right now');

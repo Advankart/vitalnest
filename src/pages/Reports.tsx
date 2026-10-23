@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { t } from '../lib/i18n';
 import { useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { Camera, ExternalLink, FileImage, FileText, Trash2, Upload } from 'lucide-react';
@@ -32,7 +33,7 @@ export default function Reports() {
     } catch (e) { toast((e as Error).message, 'err'); }
   }
   async function del(r: Report) {
-    if (!confirm(`Delete "${r.title}"?`)) return;
+    if (!confirm(t('Delete "{name}"?', { name: r.title }))) return;
     try { await api().deleteReport(r); setView(null); load(); } catch (e) { toast((e as Error).message, 'err'); }
   }
 
@@ -41,7 +42,7 @@ export default function Reports() {
     <div className="rise">
       <PageHeader title="Health reports" subtitle={patient.full_name} right={canEdit ? <Button size="sm" onClick={() => setOpen(true)}><Upload className="h-4 w-4" />Upload</Button> : undefined} />
       <ViewOnlyNote />
-      <Segmented value={filter} onChange={setFilter} className="mb-4" options={[{ id: 'all', label: 'All' }, ...CATS.slice(0, 4).map(c => ({ id: c.id, label: c.label.split(' ')[0] }))]} />
+      <Segmented value={filter} onChange={setFilter} className="mb-4" options={[{ id: 'all', label: 'All' }, ...CATS.slice(0, 4).map(c => ({ id: c.id, label: ({ lab: 'Lab', prescription: 'Prescription', scan: 'Scan', discharge: 'Discharge' } as Record<string, string>)[c.id] ?? c.label }))]} />
       {list === null ? <Spinner /> : !shown.length ? (
         <Empty icon={<FileText className="h-7 w-7" />} title="No reports yet" text="Upload lab reports, prescriptions, ECGs and discharge summaries — photos or PDFs. The family can view them anytime." action={canEdit ? <Button onClick={() => setOpen(true)}><Upload className="h-4 w-4" />Upload report</Button> : undefined} />
       ) : (

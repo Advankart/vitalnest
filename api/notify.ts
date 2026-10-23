@@ -10,6 +10,9 @@ const LABEL: Record<string, [string, string, string]> = {
   weight: ['Weight', 'kg', '⚖️'], spo2: ['SpO₂', '%', '🫁'], temperature: ['Temperature', '°F', '🌡️'], hba1c: ['HbA1c', '%', '🧪'],
 };
 const CTX: Record<string, string> = { fasting: 'fasting', before_meal: 'before meal', after_meal: 'after meal', bedtime: 'bedtime', night: 'night', random: 'random' };
+const LABEL_TA: Record<string, string> = { glucose: 'இரத்த சர்க்கரை', bp: 'BP', heart_rate: 'இதயத் துடிப்பு', weight: 'எடை', spo2: 'SpO₂', temperature: 'உடல் வெப்பநிலை', hba1c: 'HbA1c' };
+const CTX_TA: Record<string, string> = { fasting: 'வெறும் வயிற்றில்', before_meal: 'உணவுக்கு முன்', after_meal: 'உணவுக்குப் பின்', bedtime: 'தூங்கும் முன்', night: 'இரவு', random: 'எந்த நேரமும்' };
+const STATUS_TA: Record<string, string> = { '⚠️ Very low': '⚠️ மிகக் குறைவு', '⚠️ Low': '⚠️ குறைவு', '⚠️ Very high': '⚠️ மிக அதிகம்', 'High': 'அதிகம்', 'In range': 'சரியான அளவில்', 'Low': 'குறைவு', '⚠️ Unusual': '⚠️ வழக்கத்திற்கு மாறானது', 'Normal': 'இயல்பு', 'Slightly low': 'சற்று குறைவு' };
 
 function status(v: any, p: any): string {
   const a = Number(v.value1), b = Number(v.value2 ?? 0);
@@ -60,7 +63,11 @@ export default async function handler(req: any, res: any) {
     const val = v.kind === 'bp' ? `${Math.round(v.value1)}/${Math.round(v.value2)}${v.value3 ? ` · pulse ${Math.round(v.value3)}` : ''}` : (['weight', 'temperature', 'hba1c'].includes(v.kind) ? Number(v.value1).toFixed(1) : Math.round(v.value1));
     const st = status(v, p);
     const first = String(p.full_name).split(' ')[0];
-    const msg = {
+    const msg = (lang: string) => lang === 'ta' ? {
+      title: `${icon} ${first}: ${LABEL_TA[v.kind] ?? label} ${val} ${unit}`.trim(),
+      body: [STATUS_TA[st] ?? st, v.context ? CTX_TA[v.context] : '', by ? `${by} பதிவு செய்தார்` : ''].filter(Boolean).join(' · '),
+      path: '/history', patient_id: p.id, tag: `vital-${v.id}`,
+    } : {
       title: `${icon} ${first}: ${label} ${val} ${unit}`.trim(),
       body: [st, v.context ? CTX[v.context] : '', by ? `added by ${by}` : ''].filter(Boolean).join(' · '),
       path: '/history', patient_id: p.id, tag: `vital-${v.id}`,

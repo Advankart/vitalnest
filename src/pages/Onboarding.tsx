@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { t } from '../lib/i18n';
 import { useNavigate } from 'react-router-dom';
 import { Home, KeyRound, LogOut } from 'lucide-react';
 import { api } from '../lib/api';
@@ -20,7 +21,7 @@ export default function Onboarding() {
       await refreshAuth();
       selectFamily(f.id);
       if (tab === 'create') nav('/patients/new?first=1', { replace: true });
-      else { toast(`Joined ${f.name}`); nav('/', { replace: true }); }
+      else { toast(t('Joined {name}', { name: f.name })); nav('/', { replace: true }); }
     } catch (e) { toast((e as Error).message, 'err'); } finally { setBusy(false); }
   }
 
