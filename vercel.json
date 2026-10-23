@@ -5,7 +5,7 @@
   "outputDirectory": "dist",
   "redirects": [
     { "source": "/download", "destination": "https://github.com/Advankart/vitalnest/releases/latest/download/VitalNest.apk", "permanent": false },
-    { "source": "/download-compat", "destination": "https://github.com/Advankart/vitalnest/releases/latest/download/VitalNest-compat.apk", "permanent": false }
+    { "source": "/download-compat", "destination": "https://github.com/Advankart/vitalnest/releases/latest/download/VitalNest.apk", "permanent": false }
   ],
   "rewrites": [{ "source": "/((?!assets/|sw.js|workbox-|manifest.webmanifest|icon-|favicon|apple-touch).*)", "destination": "/index.html" }],
   "headers": [
