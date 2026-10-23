@@ -70,6 +70,12 @@ jobs:
               --ks-pass env:ANDROID_KEYSTORE_PASSWORD --key-pass env:ANDROID_KEY_PASSWORD \
               --min-sdk-version 21 --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true \
               --out ../VitalNest.apk app/build/outputs/apk/release/app-release.apk
+            # Compatibility build (targets Android 13) for phones whose installer rejects newer APKs
+            TARGET_SDK=33 ./gradlew assembleRelease --no-daemon
+            "$BT/apksigner" sign --ks "$ANDROID_KEYSTORE_PATH" --ks-key-alias "$ANDROID_KEY_ALIAS" \
+              --ks-pass env:ANDROID_KEYSTORE_PASSWORD --key-pass env:ANDROID_KEY_PASSWORD \
+              --min-sdk-version 21 --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true \
+              --out ../VitalNest-compat.apk app/build/outputs/apk/release/app-release.apk
           else
             ./gradlew assembleDebug --no-daemon
             cp app/build/outputs/apk/debug/app-debug.apk ../VitalNest.apk
@@ -80,12 +86,13 @@ jobs:
           BT="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
           "$BT/apksigner" verify --verbose --min-sdk-version 21 VitalNest.apk | head -12
           "$BT/aapt2" dump badging VitalNest.apk | grep -iE "^package|sdkVersion" || true
-          ls -l VitalNest.apk
+          "$BT/aapt2" dump badging VitalNest-compat.apk | grep -iE "sdkVersion" || true
+          ls -l VitalNest*.apk
 
       - uses: actions/upload-artifact@v4
         with:
           name: VitalNest-apk
-          path: VitalNest.apk
+          path: VitalNest*.apk
 
       - name: Publish as a GitHub Release (download link for the family)
         if: env.ANDROID_KEYSTORE_PATH != ''
@@ -96,5 +103,8 @@ jobs:
           body: |
             Install on Android: download **VitalNest.apk** below → open it → allow "Install unknown apps" if asked.
             Updating? Just install the new APK over the old one — your data is safe in the cloud.
-          files: VitalNest.apk
+            If your phone says "problem parsing the package" (some OPPO/Realme/Vivo phones), use **VitalNest-compat.apk** instead.
+          files: |
+            VitalNest.apk
+            VitalNest-compat.apk
           make_latest: true
