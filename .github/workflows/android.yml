@@ -73,6 +73,7 @@ jobs:
           path: VitalNest.apk
 
       - name: Publish as a GitHub Release (download link for the family)
+        if: env.ANDROID_KEYSTORE_PATH != ''
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.${{ github.run_number }}
