@@ -18,6 +18,23 @@ export function filterRange(d: ExportData, from: Date, to: Date): ExportData {
   };
 }
 
+/** What a share/export contains. Vital kinds plus 'meds' | 'food' | 'water'. */
+export type IncludeKey = 'glucose' | 'bp' | 'heart_rate' | 'weight' | 'spo2' | 'hba1c' | 'temperature' | 'meds' | 'food' | 'water';
+export const INCLUDE_OPTIONS: { id: IncludeKey; label: string }[] = [
+  { id: 'glucose', label: 'Blood sugar' }, { id: 'bp', label: 'BP' }, { id: 'heart_rate', label: 'Heart rate' },
+  { id: 'weight', label: 'Weight' }, { id: 'spo2', label: 'SpO₂' }, { id: 'hba1c', label: 'HbA1c' },
+  { id: 'temperature', label: 'Temperature' }, { id: 'meds', label: 'Medicines' }, { id: 'food', label: 'Food' }, { id: 'water', label: 'Water' },
+];
+export function applyInclude(d: ExportData, inc: Set<IncludeKey>): ExportData {
+  return {
+    vitals: d.vitals.filter(v => inc.has(v.kind as IncludeKey)),
+    meals: inc.has('food') ? d.meals : [],
+    water: inc.has('water') ? d.water : [],
+    meds: inc.has('meds') ? d.meds : [],
+    medLogs: inc.has('meds') ? d.medLogs : [],
+  };
+}
+
 export function summarize(p: Patient, d: ExportData, days: number) {
   const g = d.vitals.filter(v => v.kind === 'glucose');
   const gs = stats(g.map(v => Number(v.value1)));
@@ -58,6 +75,8 @@ export function toExcel(p: Patient, d: ExportData, from: Date, to: Date): Blob {
   const wb = XLSX.utils.book_new();
   const s = summarize(p, d, Math.round((+to - +from) / 864e5));
   const add = (name: string, rows: Record<string, unknown>[], widths?: number[]) => {
+    if (name === 'Summary') rows = rows.filter(r => r.Value !== '' && r.Value !== 0 && r.Value != null);
+    if (!rows.length && name !== 'Summary') return; // only include sheets that have data
     const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ Info: 'No data in this period' }]);
     if (widths) ws['!cols'] = widths.map(w => ({ wch: w }));
     XLSX.utils.book_append_sheet(wb, ws, name);
@@ -78,7 +97,7 @@ export function toExcel(p: Patient, d: ExportData, from: Date, to: Date): Blob {
   add('All vitals', vitalRows(p, d.vitals), [12, 10, 16, 10, 8, 7, 16, 11, 30]);
   add('Blood sugar', d.vitals.filter(v => v.kind === 'glucose').map(v => ({ Date: format(new Date(v.measured_at), 'dd-MM-yyyy'), Time: format(new Date(v.measured_at), 'hh:mm a'), 'mg/dL': Number(v.value1), When: ctxLabel(v.context), Status: STATUS_STYLE[classify(v, p)].label, Notes: v.notes ?? '' })), [12, 10, 8, 16, 11, 30]);
   add('Blood pressure', d.vitals.filter(v => v.kind === 'bp').map(v => ({ Date: format(new Date(v.measured_at), 'dd-MM-yyyy'), Time: format(new Date(v.measured_at), 'hh:mm a'), Systolic: Number(v.value1), Diastolic: Number(v.value2), Pulse: v.value3 ?? '', Status: STATUS_STYLE[classify(v, p)].label })), [12, 10, 9, 9, 7, 11]);
-  add('Medicines', d.meds.map(m => ({ Medicine: m.name, Strength: m.strength ?? '', Dose: m.dose ?? '', Times: m.times.map(to12h).join(', '), Take: FOOD_REL[m.food_relation ?? ''] ?? '', For: m.purpose ?? '', Active: m.active ? 'Yes' : 'No', 'Stock left': m.stock ?? '' })), [24, 12, 14, 24, 14, 16, 7, 9]);
+  add('Medicines', d.meds.map(m => ({ Medicine: m.name, Strength: m.strength ?? '', Composition: m.composition ?? '', Dose: m.dose ?? '', Times: m.times.map(to12h).join(', '), Take: FOOD_REL[m.food_relation ?? ''] ?? '', For: m.purpose ?? '', Active: m.active ? 'Yes' : 'No', 'Stock left': m.stock ?? '' })), [24, 12, 14, 24, 14, 16, 7, 9]);
   add('Medicine log', d.medLogs.map(l => ({ Date: l.scheduled_date, Time: to12h(l.scheduled_time), Medicine: d.meds.find(m => m.id === l.medicine_id)?.name ?? '', Status: l.status })), [12, 10, 24, 8]);
   add('Food', d.meals.flatMap(m => m.items.map(it => ({ Date: format(new Date(m.eaten_at), 'dd-MM-yyyy'), Time: format(new Date(m.eaten_at), 'hh:mm a'), Meal: m.meal_type, Food: it.name, Qty: it.qty, Unit: it.unit, Calories: Math.round(it.kcal), 'Carbs (g)': it.carbs, 'Protein (g)': it.protein }))), [12, 10, 10, 28, 5, 10, 9, 9, 10]);
   const waterByDay: Record<string, number> = {};
@@ -129,14 +148,15 @@ export function toPDF(p: Patient, d: ExportData, from: Date, to: Date, charts: {
     ['Time in range', s.gs.n ? `${Math.round(s.tir.inRange)}%` : '—'], ['Est. HbA1c', s.eA1c ? `${s.eA1c.toFixed(1)}%` : '—'], ['Lab HbA1c', s.a1c ? `${Number(s.a1c.value1).toFixed(1)}%` : '—'],
     ['Avg BP', s.sys.n ? `${Math.round(s.sys.avg)}/${Math.round(s.dia.avg)}` : '—'], ['Avg pulse', s.hr.n ? `${Math.round(s.hr.avg)} bpm` : '—'], ['Med adherence', s.adh.due ? `${Math.round(s.adh.pct)}%` : '—'],
   ];
+  const shown = tiles.filter(([, v]) => v !== '—');
   const tw = (W - 2 * M - 16) / 3, th = 46;
-  tiles.forEach(([l, v], i) => {
+  shown.forEach(([l, v], i) => {
     const cx = M + (i % 3) * (tw + 8), cy = y + Math.floor(i / 3) * (th + 8);
     doc.setFillColor(241, 245, 249); doc.roundedRect(cx, cy, tw, th, 8, 8, 'F');
     doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(100, 116, 139); doc.text(l, cx + 10, cy + 16);
     doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(15, 23, 42); doc.text(v, cx + 10, cy + 36);
   });
-  y += 3 * (th + 8) + 6;
+  y += Math.ceil(shown.length / 3) * (th + 8) + 6;
   if (s.hypos) { doc.setFontSize(9); doc.setTextColor(185, 28, 28); doc.text(`${s.hypos} low sugar reading(s) below 70 mg/dL in this period.`, M, y); y += 14; }
 
   // charts
@@ -156,7 +176,7 @@ export function toPDF(p: Patient, d: ExportData, from: Date, to: Date, charts: {
     autoTable(doc, { startY: y + 8, head: [head], body, theme: 'grid', headStyles: { fillColor: teal, fontSize: 9 }, styles: { fontSize: 8.5, cellPadding: 4 }, alternateRowStyles: { fillColor: [248, 250, 252] }, margin: { left: M, right: M } });
     y = (doc as any).lastAutoTable.finalY + 22;
   };
-  sectionTable('Current medicines', ['Medicine', 'Strength', 'Dose', 'Times', 'Take', 'For'], d.meds.filter(m => m.active).map(m => [m.name, m.strength ?? '', m.dose ?? '', m.times.map(to12h).join(', '), FOOD_REL[m.food_relation ?? ''] ?? '', m.purpose ?? '']));
+  sectionTable('Current medicines', ['Medicine', 'Strength', 'Composition', 'Dose', 'Times', 'Take', 'For'], d.meds.filter(m => m.active).map(m => [m.name, m.strength ?? '', m.composition ?? '', m.dose ?? '', m.times.map(to12h).join(', '), FOOD_REL[m.food_relation ?? ''] ?? '', m.purpose ?? '']));
   sectionTable('Blood sugar readings', ['Date', 'Time', 'mg/dL', 'When', 'Status', 'Notes'], d.vitals.filter(v => v.kind === 'glucose').slice(-150).reverse().map(v => [format(new Date(v.measured_at), 'dd MMM'), format(new Date(v.measured_at), 'h:mm a'), Math.round(v.value1), ctxLabel(v.context), STATUS_STYLE[classify(v, p)].label, v.notes ?? '']));
   sectionTable('Blood pressure readings', ['Date', 'Time', 'BP (mmHg)', 'Pulse', 'Status'], d.vitals.filter(v => v.kind === 'bp').slice(-120).reverse().map(v => [format(new Date(v.measured_at), 'dd MMM'), format(new Date(v.measured_at), 'h:mm a'), `${Math.round(v.value1)}/${Math.round(Number(v.value2))}`, v.value3 ? Math.round(v.value3) : '', STATUS_STYLE[classify(v, p)].label]));
   sectionTable('Other vitals', ['Date', 'Time', 'Type', 'Reading', 'Status'], d.vitals.filter(v => !['glucose', 'bp'].includes(v.kind)).slice(-120).reverse().map(v => [format(new Date(v.measured_at), 'dd MMM'), format(new Date(v.measured_at), 'h:mm a'), VITALS[v.kind].label, `${fmtVital(v)} ${VITALS[v.kind].unit}`, STATUS_STYLE[classify(v, p)].label]));
@@ -199,8 +219,19 @@ export function summaryText(p: Patient, d: ExportData, days: number): string {
     L.push(`• Average BP: ${Math.round(s.sys.avg)}/${Math.round(s.dia.avg)} mmHg${s.hr.n ? ` · Pulse ${Math.round(s.hr.avg)} bpm` : ''}`);
     L.push('');
   }
+  if (s.hr.n && !s.sys.n) L.push(`❤️ Average pulse: ${Math.round(s.hr.avg)} bpm`);
+  if (s.spo2.n) L.push(`🫁 SpO₂: average ${Math.round(s.spo2.avg)}% (lowest ${Math.round(s.spo2.min)}%)`);
+  if (s.a1c && !s.gs.n) L.push(`🧪 Latest HbA1c: ${Number(s.a1c.value1).toFixed(1)}% (${format(new Date(s.a1c.measured_at), 'd MMM yyyy')})`);
+  const temps = d.vitals.filter(v => v.kind === 'temperature');
+  if (temps.length) L.push(`🌡️ Latest temperature: ${Number(temps[temps.length - 1].value1).toFixed(1)} °F`);
   if (s.weight) L.push(`⚖️ Weight: ${s.weight.toFixed(1)} kg${s.weightChange ? ` (${s.weightChange > 0 ? '+' : ''}${s.weightChange.toFixed(1)} kg)` : ''}`);
   if (s.adh.due) L.push(`💊 Medicines taken: ${Math.round(s.adh.pct)}% (${s.adh.taken}/${s.adh.due} doses)`);
+  const active = d.meds.filter(m => m.active);
+  if (active.length) {
+    L.push('');
+    L.push('💊 *Current medicines*');
+    for (const m of active) L.push(`• *${m.name}*${m.strength ? ` ${m.strength}` : ''}${m.dose ? ` — ${m.dose}` : ''} · ${m.times.map(to12h).join(', ')}${m.food_relation ? ` · ${FOOD_REL[m.food_relation] ?? ''}` : ''}${m.days?.length && m.days.length < 7 ? ` · ${m.days.map(x => ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][x]).join('/')}` : ''}`);
+  }
   if (s.kcal) L.push(`🍽️ Avg calories: ${Math.round(s.kcal)} kcal/day`);
   if (s.water) L.push(`💧 Avg water: ${(s.water / 1000).toFixed(1)} L/day`);
   L.push('');

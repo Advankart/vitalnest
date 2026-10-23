@@ -1,11 +1,13 @@
-import { forwardRef, useMemo, useRef, useState } from 'react';
+import { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { toPng } from 'html-to-image';
 import { FileSpreadsheet, FileText, Image as ImageIcon, MessageCircle, Sheet as SheetIcon, Download } from 'lucide-react';
 import { useApp } from '../lib/store';
-import { filterRange, summarize, summaryText, toCSV, toExcel, toPDF, type ExportData } from '../lib/export';
+import { applyInclude, filterRange, INCLUDE_OPTIONS, summarize, summaryText, toCSV, toExcel, toPDF, type ExportData, type IncludeKey } from '../lib/export';
+import { useSearchParams } from 'react-router-dom';
+import { Check } from 'lucide-react';
 import { saveFile, shareFile, shareText } from '../lib/share';
-import { CONDITIONS, age } from '../lib/health';
+import { CONDITIONS, age, to12h } from '../lib/health';
 import type { Patient } from '../lib/types';
 import { BPChart, GlucoseChart, SimpleLine } from '../components/Charts';
 import { Button, Field, PageHeader, Segmented } from '../components/ui';
@@ -45,15 +47,27 @@ const ShareCard = forwardRef<HTMLDivElement, { p: Patient; d: ExportData; days: 
           </div>
         )}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          {tile('Avg sugar', s.gs.n ? `${Math.round(s.gs.avg)}` : '—', 'mg/dL')}
-          {tile('Est. HbA1c', s.eA1c ? `${s.eA1c.toFixed(1)}%` : '—', s.a1c ? `Lab ${Number(s.a1c.value1).toFixed(1)}%` : undefined)}
-          {tile('Fasting avg', s.fast.n ? `${Math.round(s.fast.avg)}` : '—', 'mg/dL')}
-          {tile('After meal avg', s.pp.n ? `${Math.round(s.pp.avg)}` : '—', 'mg/dL')}
+          {s.gs.n > 0 && tile('Avg sugar', `${Math.round(s.gs.avg)}`, 'mg/dL')}
+          {(s.eA1c || s.a1c) && tile(s.eA1c ? 'Est. HbA1c' : 'Lab HbA1c', s.eA1c ? `${s.eA1c.toFixed(1)}%` : `${Number(s.a1c!.value1).toFixed(1)}%`, s.eA1c && s.a1c ? `Lab ${Number(s.a1c.value1).toFixed(1)}%` : undefined)}
+          {s.fast.n > 0 && tile('Fasting avg', `${Math.round(s.fast.avg)}`, 'mg/dL')}
+          {s.pp.n > 0 && tile('After meal avg', `${Math.round(s.pp.avg)}`, 'mg/dL')}
           {s.sys.n > 0 && tile('Avg BP', `${Math.round(s.sys.avg)}/${Math.round(s.dia.avg)}`, 'mmHg', '#7c3aed')}
           {s.hr.n > 0 && tile('Avg pulse', `${Math.round(s.hr.avg)}`, 'bpm', '#ea580c')}
           {s.weight && tile('Weight', `${s.weight.toFixed(1)}`, s.weightChange ? `${s.weightChange > 0 ? '+' : ''}${s.weightChange.toFixed(1)} kg in period` : 'kg', '#0891b2')}
+          {s.spo2.n > 0 && tile('Avg SpO₂', `${Math.round(s.spo2.avg)}%`, `lowest ${Math.round(s.spo2.min)}%`, '#2563eb')}
           {s.adh.due > 0 && tile('Medicines taken', `${Math.round(s.adh.pct)}%`, `${s.adh.taken}/${s.adh.due} doses`, s.adh.pct >= 90 ? '#059669' : '#d97706')}
         </div>
+        {d.meds.filter(m => m.active).length > 0 && (
+          <div style={{ marginTop: 10, background: '#faf5ff', borderRadius: 18, padding: '10px 14px' }}>
+            <div style={{ fontSize: 11, color: '#7e22ce', fontWeight: 700, marginBottom: 4 }}>CURRENT MEDICINES</div>
+            {d.meds.filter(m => m.active).slice(0, 8).map(m => (
+              <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 12, padding: '3px 0', borderTop: '1px solid #f3e8ff' }}>
+                <span style={{ fontWeight: 700 }}>{m.name} <span style={{ fontWeight: 400, color: '#64748b' }}>{m.strength}</span></span>
+                <span style={{ color: '#64748b', whiteSpace: 'nowrap' }}>{m.times.map(to12h).join(', ')}</span>
+              </div>
+            ))}
+          </div>
+        )}
         {s.hypos > 0 && <div style={{ marginTop: 10, background: '#fef2f2', color: '#b91c1c', borderRadius: 14, padding: '8px 12px', fontSize: 11.5, fontWeight: 600 }}>{s.hypos} low sugar reading{s.hypos > 1 ? 's' : ''} (below 70) this period</div>}
         <div style={{ marginTop: 14, display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#94a3b8' }}>
           <span style={{ fontWeight: 700, color: '#0f766e' }}>♥ VitalNest</span><span>{format(new Date(), 'd MMM yyyy')}</span>
@@ -65,6 +79,16 @@ const ShareCard = forwardRef<HTMLDivElement, { p: Patient; d: ExportData; days: 
 
 export default function Export() {
   const { patient, data, toast } = useApp();
+  const [sp] = useSearchParams();
+  const only = sp.get('only');
+  const initialInc = (): Set<IncludeKey> => {
+    if (only === 'vitals') return new Set(INCLUDE_OPTIONS.map(o => o.id).filter(k => !['meds', 'food', 'water'].includes(k)));
+    if (only) return new Set(only.split(',') as IncludeKey[]);
+    return new Set(INCLUDE_OPTIONS.map(o => o.id));
+  };
+  const [inc, setInc] = useState<Set<IncludeKey>>(initialInc);
+  useEffect(() => { setInc(initialInc()); }, [only]); // eslint-disable-line
+  const toggleInc = (k: IncludeKey) => setInc(s => { const n = new Set(s); if (n.has(k)) { if (n.size > 1) n.delete(k); } else n.add(k); return n; });
   const [range, setRange] = useState<'7' | '30' | '90' | 'custom'>('30');
   const [from, setFrom] = useState(format(subDays(new Date(), 30), 'yyyy-MM-dd'));
   const [to, setTo] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -74,9 +98,10 @@ export default function Export() {
 
   const [f, t] = range === 'custom' ? [startOfDay(new Date(from)), endOfDay(new Date(to))] : [startOfDay(subDays(new Date(), Number(range) - 1)), new Date()];
   const days = Math.max(1, Math.round((+t - +f) / 864e5));
-  const d = useMemo(() => filterRange(data, f, t), [data, +f, +t]); // eslint-disable-line
+  const d = useMemo(() => applyInclude(filterRange(data, f, t), inc), [data, +f, +t, inc]); // eslint-disable-line
   if (!patient) return null;
-  const base = `${patient.full_name.replace(/\s+/g, '_')}_${format(f, 'ddMMMyy')}-${format(t, 'ddMMMyy')}`;
+  const tag = inc.size === 1 ? `_${[...inc][0]}` : inc.size < INCLUDE_OPTIONS.length ? '_selected' : '';
+  const base = `${patient.full_name.replace(/\s+/g, '_')}${tag}_${format(f, 'ddMMMyy')}-${format(t, 'ddMMMyy')}`;
 
   async function run(key: string, fn: () => Promise<string | void>) {
     setBusy(key);
@@ -111,7 +136,7 @@ export default function Export() {
 
   return (
     <div className="rise">
-      <PageHeader title="Share & export" subtitle={`${patient.full_name} · ${d.vitals.length} readings`} />
+      <PageHeader title={inc.size === 1 && inc.has('meds') ? 'Share medicines' : 'Share & export'} subtitle={`${patient.full_name} · ${d.vitals.length} readings${d.meds.length ? ` · ${d.meds.length} medicines` : ''}`} />
       <Segmented value={range} onChange={setRange} options={[{ id: '7', label: '7 days' }, { id: '30', label: '30 days' }, { id: '90', label: '90 days' }, { id: 'custom', label: 'Custom' }]} />
       {range === 'custom' && (
         <div className="mt-3 grid grid-cols-2 gap-3">
@@ -119,6 +144,25 @@ export default function Export() {
           <Field label="To"><input type="date" className="field" value={to} onChange={e => setTo(e.target.value)} /></Field>
         </div>
       )}
+
+      <h2 className="mb-2 mt-5 px-1 text-[0.9375rem] font-bold">What to share</h2>
+      <div className="flex flex-wrap gap-2">
+        {INCLUDE_OPTIONS.map(o => {
+          const on = inc.has(o.id);
+          return (
+            <button key={o.id} onClick={() => toggleInc(o.id)}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[0.8125rem] font-semibold ring-1 transition ${on ? 'bg-brand-600 text-white ring-brand-600' : 'bg-white text-slate-500 ring-slate-200 dark:bg-night-3 dark:text-slate-400 dark:ring-white/10'}`}>
+              {on && <Check className="h-3.5 w-3.5" strokeWidth={3} />}{o.label}
+            </button>
+          );
+        })}
+      </div>
+      <div className="mt-2 flex gap-3 px-1 text-[0.75rem] font-semibold text-brand-700 dark:text-brand-300">
+        <button onClick={() => setInc(new Set(INCLUDE_OPTIONS.map(o => o.id)))}>Select all</button>
+        <button onClick={() => setInc(new Set(['glucose']))}>Only sugar</button>
+        <button onClick={() => setInc(new Set(['bp', 'heart_rate']))}>Only BP & pulse</button>
+        <button onClick={() => setInc(new Set(['meds']))}>Only medicines</button>
+      </div>
 
       <h2 className="mb-2 mt-6 px-1 text-[0.9375rem] font-bold">WhatsApp</h2>
       <div className="flex justify-center rounded-[32px] bg-gradient-to-b from-emerald-50 to-teal-50 p-5 dark:from-white/5 dark:to-white/[.02]">

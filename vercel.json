@@ -7,7 +7,7 @@
     { "source": "/download", "destination": "https://github.com/Advankart/vitalnest/releases/latest/download/VitalNest.apk", "permanent": false },
     { "source": "/download-compat", "destination": "https://github.com/Advankart/vitalnest/releases/latest/download/VitalNest.apk", "permanent": false }
   ],
-  "rewrites": [{ "source": "/((?!assets/|sw.js|workbox-|manifest.webmanifest|icon-|favicon|apple-touch).*)", "destination": "/index.html" }],
+  "rewrites": [{ "source": "/((?!api/|assets/|push-sw.js|sw.js|workbox-|manifest.webmanifest|icon-|favicon|apple-touch).*)", "destination": "/index.html" }],
   "headers": [
     { "source": "/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
     { "source": "/(.*)", "headers": [

@@ -86,6 +86,8 @@ export interface Medicine {
   end_date?: string | null;
   stock?: number | null;
   purpose?: string | null;
+  composition?: string | null;
+  manufacturer?: string | null;
   notes?: string | null;
   active: boolean;
 }
@@ -127,3 +129,5 @@ export interface Report {
 export interface CustomFood { id: string; family_id: string; name: string; unit: string; kcal: number; carbs: number; protein: number }
 
 export type PatientTable = 'vitals' | 'meals' | 'water_logs' | 'medicines' | 'medicine_logs' | 'reminders' | 'reports';
+
+export interface PushToken { id: string; user_id: string; token: string; platform: 'android' | 'web'; alerts_vitals: boolean; alerts_meds: boolean }

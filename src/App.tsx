@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-route
 import { App as CapApp } from '@capacitor/app';
 import { AppProvider, useApp } from './lib/store';
 import { initNotifications, isNative } from './lib/notify';
+import { initPush } from './lib/push';
 import Layout from './components/Layout';
 import { Spinner, Toasts } from './components/ui';
 import Auth from './pages/Auth';
@@ -23,6 +24,15 @@ import More from './pages/More';
 
 function Native() {
   const nav = useNavigate();
+  const { selectPatient, user } = useApp();
+  useEffect(() => {
+    // opened from a web notification: /history?patient=<id>
+    const pid = new URLSearchParams(window.location.search).get('patient');
+    if (pid) selectPatient(pid);
+  }, []); // eslint-disable-line
+  useEffect(() => {
+    if (user) initPush((path, patientId) => { if (patientId) selectPatient(patientId); nav(path); });
+  }, [user?.id]); // eslint-disable-line
   useEffect(() => {
     initNotifications(p => nav(p));
     if (!isNative()) return;

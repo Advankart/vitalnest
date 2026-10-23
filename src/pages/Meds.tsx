@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { addDays, format, isToday } from 'date-fns';
-import { AlarmClock, Check, ChevronLeft, ChevronRight, Pencil, Pill, Plus, Syringe, Trash2, X } from 'lucide-react';
+import { AlarmClock, Check, ChevronLeft, ChevronRight, Pencil, Pill, Plus, Share2, Syringe, Trash2, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../lib/store';
 import { api } from '../lib/api';
 import { toggleDose } from '../lib/actions';
 import { DAY_SHORT, FOOD_REL, MED_FORMS, dayKey, hhmm, medsForDate, to12h } from '../lib/health';
 import type { Medicine } from '../lib/types';
+import { ScanButton } from '../components/ScanButton';
+import type { MedScan } from '../lib/scan';
 import { Button, Empty, Field, Section, Segmented, Sheet, ViewOnlyNote, cx } from '../components/ui';
 
 const PRESET_TIMES = [['Morning', '08:00'], ['Afternoon', '14:00'], ['Evening', '18:00'], ['Night', '21:00']];
@@ -36,7 +39,17 @@ function MedForm({ med, onClose }: { med: Partial<Medicine> | null; onClose: () 
 
   return (
     <div className="space-y-4">
-      <Field label="Medicine name"><input className="field" value={m.name ?? ''} onChange={e => up('name', e.target.value)} placeholder="e.g. Metformin" autoFocus /></Field>
+      {!m.id && (
+        <ScanButton<MedScan> kind="medicine" onResult={r => setM(s => ({
+          ...s,
+          name: r.name ?? s.name, strength: r.strength ?? s.strength,
+          form: r.form && MED_FORMS.includes(r.form) ? r.form : s.form,
+          composition: r.composition ?? s.composition, manufacturer: r.manufacturer ?? s.manufacturer,
+          purpose: r.purpose ?? s.purpose,
+        }))} />
+      )}
+      <Field label="Medicine name"><input className="field" value={m.name ?? ''} onChange={e => up('name', e.target.value)} placeholder="e.g. Metformin" /></Field>
+      <Field label="Composition (active ingredients)"><input className="field" value={m.composition ?? ''} onChange={e => up('composition', e.target.value)} placeholder="e.g. Metformin Hydrochloride 500 mg" /></Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Strength"><input className="field" value={m.strength ?? ''} onChange={e => up('strength', e.target.value)} placeholder="500 mg / 100 U/mL" /></Field>
         <Field label="Dose"><input className="field" value={m.dose ?? ''} onChange={e => up('dose', e.target.value)} placeholder="1 tablet / 8 units" /></Field>
@@ -71,6 +84,7 @@ function MedForm({ med, onClose }: { med: Partial<Medicine> | null; onClose: () 
         <Field label="Stock left" hint="Counts down when marked taken"><input type="number" inputMode="numeric" className="field" value={m.stock ?? ''} onChange={e => up('stock', e.target.value === '' ? null : Number(e.target.value))} /></Field>
         <Field label="For"><input className="field" value={m.purpose ?? ''} onChange={e => up('purpose', e.target.value)} placeholder="Diabetes, BP…" /></Field>
       </div>
+      <Field label="Manufacturer"><input className="field" value={m.manufacturer ?? ''} onChange={e => up('manufacturer', e.target.value)} placeholder="Company name (optional)" /></Field>
       <Field label="Notes"><input className="field" value={m.notes ?? ''} onChange={e => up('notes', e.target.value)} placeholder="Prescribed by…, special instructions" /></Field>
       {m.id && <label className="flex items-center gap-3 text-sm"><input type="checkbox" className="h-5 w-5 accent-brand-600" checked={m.active ?? true} onChange={e => up('active', e.target.checked)} />Currently taking (uncheck to pause reminders)</label>}
       <Button block size="lg" loading={busy} onClick={save}>Save medicine</Button>
@@ -81,6 +95,7 @@ function MedForm({ med, onClose }: { med: Partial<Medicine> | null; onClose: () 
 
 export default function Meds() {
   const { patient, data, canEdit, refreshData, toast } = useApp();
+  const nav = useNavigate();
   const [tab, setTab] = useState<'schedule' | 'all'>('schedule');
   const [day, setDay] = useState(new Date());
   const [edit, setEdit] = useState<Partial<Medicine> | null | false>(false);
@@ -102,7 +117,10 @@ export default function Meds() {
     <div className="rise">
       <div className="mb-4 flex items-center justify-between pt-1">
         <div><h1 className="text-[1.5rem] font-extrabold">Medicines</h1><p className="text-[0.8125rem] text-slate-500">{patient.full_name}</p></div>
-        {canEdit && <Button size="sm" onClick={() => setEdit(null)}><Plus className="h-4 w-4" />Add</Button>}
+        <div className="flex gap-2">
+          {data.meds.length > 0 && <Button size="sm" variant="soft" onClick={() => nav('/export?only=meds')} aria-label="Share medicines"><Share2 className="h-4 w-4" /></Button>}
+          {canEdit && <Button size="sm" onClick={() => setEdit(null)}><Plus className="h-4 w-4" />Add</Button>}
+        </div>
       </div>
       <ViewOnlyNote />
       <Segmented value={tab} onChange={setTab} options={[{ id: 'schedule', label: 'Schedule' }, { id: 'all', label: `All medicines (${data.meds.length})` }]} />
@@ -162,6 +180,7 @@ export default function Meds() {
                 <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-purple-50 text-purple-600 dark:bg-purple-500/10">{m.form === 'insulin' ? <Syringe className="h-5 w-5" /> : <Pill className="h-5 w-5" />}</div>
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-semibold">{m.name} <span className="text-[0.8125rem] font-normal text-slate-400">{m.strength}</span></div>
+                  {m.composition && <div className="truncate text-[0.75rem] text-slate-400">{m.composition}</div>}
                   <div className="flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
                     <span className="flex items-center gap-1"><AlarmClock className="h-3 w-3" />{m.times.map(to12h).join(', ')}</span>
                     {m.days.length < 7 && <span>{m.days.map(d => DAY_SHORT[d]).join(' ')}</span>}

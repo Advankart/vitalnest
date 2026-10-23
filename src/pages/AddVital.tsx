@@ -8,6 +8,8 @@ import { advice, classify, ctxLabel, fmtVital, GLUCOSE_CONTEXTS, STATUS_STYLE, V
 import type { Vital, VitalKind } from '../lib/types';
 import { Button, ChipSelect, Field, PageHeader, StatusPill, ViewOnlyNote, cx } from '../components/ui';
 import { VitalIcon } from '../components/Layout';
+import { ScanButton } from '../components/ScanButton';
+import type { BPScan, GlucoseScan } from '../lib/scan';
 
 function guessContext() {
   const h = new Date().getHours();
@@ -86,6 +88,19 @@ export default function AddVital() {
     <div className="rise">
       <PageHeader title={`Log ${meta.label}`} subtitle={patient.full_name} />
       <ViewOnlyNote />
+      {canEdit && k === 'glucose' && (
+        <ScanButton<GlucoseScan> kind="glucose" className="mb-4" onResult={r => {
+          if (r.value != null) setV1(String(Math.round(r.unit === 'mmol/L' ? r.value * 18 : r.value)));
+          if (r.meal_marker) setCtx(r.meal_marker);
+        }} />
+      )}
+      {canEdit && k === 'bp' && (
+        <ScanButton<BPScan> kind="bp" className="mb-4" onResult={r => {
+          if (r.systolic != null) setV1(String(Math.round(r.systolic)));
+          if (r.diastolic != null) setV2(String(Math.round(r.diastolic)));
+          if (r.pulse != null) setV3(String(Math.round(r.pulse)));
+        }} />
+      )}
       <div className="card overflow-hidden">
         <div className="flex items-center gap-3 px-5 pt-5">
           <div className="grid h-11 w-11 place-items-center rounded-2xl text-white" style={{ background: `linear-gradient(140deg, ${meta.color}, ${meta.color}bb)` }}><VitalIcon kind={k} /></div>

@@ -6,12 +6,45 @@ import { DAY_SHORT, to12h } from '../lib/health';
 import type { Reminder } from '../lib/types';
 import { exactAlarmStatus, isNative, notifyEnabled, notifyPatientIds, notifyPermission, openExactAlarmSetting, requestNotifyPermission, rescheduleAll, setNotifyEnabled, setNotifyPatientIds, testNotification } from '../lib/notify';
 import { Avatar, Button, ChipSelect, Field, PageHeader, Section, Sheet, ViewOnlyNote, cx } from '../components/ui';
+import { alertPrefs, initPush, setAlertPrefs } from '../lib/push';
+import { api as apiFn } from '../lib/api';
+import { useNavigate } from 'react-router-dom';
+import { Users } from 'lucide-react';
 import { VitalIcon } from '../components/Layout';
 
 const KINDS = [{ id: 'glucose', label: 'Blood sugar' }, { id: 'bp', label: 'BP & pulse' }, { id: 'heart_rate', label: 'Heart rate' }, { id: 'weight', label: 'Weight' }, { id: 'water', label: 'Water' }, { id: 'custom', label: 'Other' }];
 
+function FamilyAlerts() {
+  const [p, setP] = useState(alertPrefs());
+  const cloud = apiFn().mode === 'cloud';
+  const upd = (k: 'vitals' | 'meds') => { const n = { ...p, [k]: !p[k] }; setP(n); setAlertPrefs(n); };
+  const Row = ({ k, title, sub }: { k: 'vitals' | 'meds'; title: string; sub: string }) => (
+    <label className="flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3 dark:bg-white/[.03]">
+      <div className="min-w-0 flex-1"><div className="text-[0.875rem] font-semibold">{title}</div><div className="text-[0.75rem] text-slate-500">{sub}</div></div>
+      <input type="checkbox" className="h-5 w-5 shrink-0 accent-brand-600" checked={p[k]} onChange={() => upd(k)} />
+    </label>
+  );
+  return (
+    <div className="card mt-4 p-5">
+      <div className="flex items-start gap-3">
+        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300"><Users className="h-5 w-5" /></div>
+        <div className="flex-1">
+          <div className="font-bold">Family alerts</div>
+          <p className="text-[0.8125rem] text-slate-500">Get notified on this {isNative() ? 'phone' : 'browser'} when someone in the family logs a reading, or a medicine isn't marked taken 30 minutes after its time.</p>
+        </div>
+      </div>
+      <div className="mt-4 space-y-2">
+        <Row k="vitals" title="New readings by family" sub="Sugar, BP, pulse, weight… with the value and status" />
+        <Row k="meds" title="Missed medicines" sub="If a dose isn't marked taken in time" />
+      </div>
+      {!cloud && <p className="mt-3 text-[0.75rem] text-slate-400">Not available in demo mode.</p>}
+    </div>
+  );
+}
+
 export function DeviceNotifications() {
   const { patients, toast } = useApp();
+  const nav = useNavigate();
   const [perm, setPerm] = useState<string>('…');
   const [exact, setExact] = useState<string | null>(null);
   const [on, setOn] = useState(notifyEnabled());
@@ -21,7 +54,7 @@ export function DeviceNotifications() {
   async function enable() {
     const ok = await requestNotifyPermission();
     setPerm(ok ? 'granted' : 'denied');
-    if (ok) { setNotifyEnabled(true); setOn(true); const n = await rescheduleAll(patients); toast(`Reminders on · ${n} scheduled`); }
+    if (ok) { setNotifyEnabled(true); setOn(true); const n = await rescheduleAll(patients); toast(`Reminders on · ${n} scheduled`); initPush(p => nav(p)); }
     else toast('Permission denied — enable notifications for VitalNest in phone settings', 'err');
   }
   async function toggleOn() { const v = !on; setOn(v); setNotifyEnabled(v); await rescheduleAll(patients); }
@@ -85,6 +118,7 @@ export default function Reminders() {
     <div className="rise">
       <PageHeader title="Reminders" subtitle={patient.full_name} right={canEdit ? <Button size="sm" onClick={() => setEdit({ kind: 'glucose', label: '', time: '08:00', days: [0, 1, 2, 3, 4, 5, 6], enabled: true })}><Plus className="h-4 w-4" />Add</Button> : undefined} />
       <DeviceNotifications />
+      <FamilyAlerts />
       <ViewOnlyNote />
       <Section title="Measuring reminders" action={<span className="text-xs text-slate-400">Medicine reminders come from Medicines</span>}>
         <div className="card divide-y divide-slate-100 dark:divide-white/5">

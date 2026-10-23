@@ -133,6 +133,9 @@ export function demoApi(): Api {
     async signUp(username, _pw, displayName) { const db = load(); db.user = { id: 'demo-user', username, display_name: displayName }; save(); listeners.forEach(l => l()); },
     async signOut() { const db = load(); db.user = null; save(); listeners.forEach(l => l()); },
     async changePassword() { await tick(); },
+    async accessToken() { return null; },
+    async registerPush() { /* demo: no push */ },
+    async unregisterPush() { /* demo */ },
 
     async myFamilies() { const db = load(); return db.members.filter(m => m.user_id === db.user?.id).map(m => ({ role: m.role, family: db.families.find(f => f.id === m.family_id)! })).filter(x => x.family); },
     async createFamily(name) { const db = load(); const f = { id: uid(), name, invite_code: Math.random().toString(36).slice(2, 8).toUpperCase() }; db.families.push(f); db.members.push({ family_id: f.id, user_id: db.user!.id, role: 'admin' }); save(); return f; },

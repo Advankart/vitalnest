@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { format, isToday, isYesterday } from 'date-fns';
-import { Trash2, ListX } from 'lucide-react';
+import { Trash2, ListX, Share2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../lib/store';
 import { api } from '../lib/api';
 import { classify, ctxLabel, fmtVital, STATUS_STYLE, VITALS, vitalsFor } from '../lib/health';
@@ -11,6 +12,7 @@ import { VitalIcon } from '../components/Layout';
 export default function History() {
   const { patient, data, canEdit, refreshData, toast } = useApp();
   const [kind, setKind] = useState<'all' | VitalKind>('all');
+  const nav = useNavigate();
   const [limit, setLimit] = useState(80);
   const rows = useMemo(() => data.vitals.filter(v => kind === 'all' || v.kind === kind), [data.vitals, kind]);
   const groups = useMemo(() => {
@@ -32,7 +34,7 @@ export default function History() {
 
   return (
     <div className="rise">
-      <PageHeader title="History" subtitle={`${rows.length} readings · ${patient.full_name}`} />
+      <PageHeader title="History" subtitle={`${rows.length} readings · ${patient.full_name}`} right={<button onClick={() => nav(`/export?only=${kind === 'all' ? 'vitals' : kind === 'bp' ? 'bp,heart_rate' : kind}`)} className="flex items-center gap-1.5 rounded-full bg-brand-600 px-3.5 py-2 text-[0.8125rem] font-semibold text-white shadow-md"><Share2 className="h-4 w-4" />Share</button>} />
       <Segmented value={kind} onChange={setKind} className="mb-4"
         options={[{ id: 'all', label: 'All' }, ...vitalsFor(patient.condition).map(k => ({ id: k, label: VITALS[k].label.replace('Blood ', '') }))]} />
       {!groups.length && <Empty icon={<ListX className="h-7 w-7" />} title="Nothing here yet" />}

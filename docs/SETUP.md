@@ -79,3 +79,32 @@ npm run dev                    # http://localhost:5173
 npm run android:sync           # copy web build into the Android project
 npx cap open android           # open in Android Studio (optional, for local APK builds)
 ```
+
+---
+
+## 6. Photo-to-fill and family alerts (one-time setup)
+
+### Database
+Run [`supabase/migration-002-alerts.sql`](../supabase/migration-002-alerts.sql) once in Supabase → SQL Editor.
+(If you ever re-run `schema.sql`, run this migration again afterwards.)
+
+### Vercel → Settings → Environment Variables
+| Name | Where it comes from |
+|---|---|
+| `ANTHROPIC_API_KEY` | console.anthropic.com → API Keys (add a little credit under Billing) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → API Keys → **secret / service_role** key (server only — never put it in the app) |
+| `VAPID_PRIVATE_KEY` | provided by your developer (browser push key) |
+| `FIREBASE_SERVICE_ACCOUNT` | Firebase console → Project settings → Service accounts → **Generate new private key** → paste the whole JSON file contents |
+
+After adding variables: Vercel → Deployments → ⋯ → **Redeploy**.
+
+### Firebase (Android push)
+1. console.firebase.google.com → **Add project** (Analytics not needed).
+2. Add an **Android app** with package name `in.advankart.vitalnest` → download `google-services.json`.
+3. GitHub → repo Settings → Secrets → Actions → New secret **`GOOGLE_SERVICES_JSON`** → paste the file contents.
+4. Re-run the *Build Android APK* workflow and install the new APK.
+
+### How alerts work
+- When someone logs a reading, every other family member (admin, caregivers, viewers) gets a notification with the value and status.
+- Every 10 minutes the server checks for doses that are 30+ minutes late and not marked taken, and alerts the rest of the family once per dose.
+- Each person can switch these on/off in **Reminders → Family alerts**.

@@ -4,6 +4,7 @@ import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
+  define: { __APP_VERSION__: JSON.stringify('1.0.' + (process.env.GITHUB_RUN_NUMBER ?? process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? 'dev')) },
   plugins: [
     react(),
     tailwindcss(),
@@ -29,7 +30,8 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/download/],
+        navigateFallbackDenylist: [/^\/download/, /^\/api\//],
+        importScripts: ['push-sw.js'],
         runtimeCaching: [],
       },
     }),

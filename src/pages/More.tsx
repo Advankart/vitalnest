@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import { stopPush } from '../lib/push';
+import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
 import { Link } from 'react-router-dom';
 import { Bell, ChevronRight, Droplets, FileText, History, KeyRound, LogOut, Moon, Share2, Sun, SunMoon, UserRound, Users, Utensils, Info, FlaskConical } from 'lucide-react';
 import { useApp } from '../lib/store';
@@ -7,6 +10,10 @@ import { resetDemo } from '../lib/demo';
 import { Avatar, Button, Field, Segmented, Sheet } from '../components/ui';
 import { getTheme, setTheme, type Theme } from '../lib/theme';
 import { getTextSize, setTextSize, TEXT_SIZES, type TextSize } from '../lib/textscale';
+
+function openAdvankart(e: React.MouseEvent) {
+  if (Capacitor.isNativePlatform()) { e.preventDefault(); Browser.open({ url: 'https://www.advankart.com' }); }
+}
 
 export default function More() {
   const { user, membership, patient, role, refreshAuth, toast } = useApp();
@@ -25,6 +32,7 @@ export default function More() {
   );
 
   async function signOut() {
+    await stopPush();
     await api().signOut();
     if (demo) { setDemo(false); resetDemo(); resetApi(); window.location.replace('/'); return; }
     await refreshAuth();
@@ -80,6 +88,13 @@ export default function More() {
         <Button variant="danger" onClick={signOut} className={demo ? 'col-span-2' : ''}><LogOut className="h-4 w-4" />{demo ? 'Leave demo' : 'Sign out'}</Button>
       </div>
       <p className="mt-6 flex gap-2 px-1 text-[0.7188rem] leading-relaxed text-slate-400"><Info className="h-4 w-4 shrink-0" />VitalNest is a personal record-keeping tool. Ranges and tips follow common guidelines and are not a diagnosis. Always follow your doctor's advice; in an emergency call 108 / 112.</p>
+      <div className="mt-6 pb-2 text-center">
+        <div className="text-[0.75rem] text-slate-400">VitalNest · version {__APP_VERSION__}</div>
+        <div className="mt-1 text-[0.8125rem] text-slate-500 dark:text-slate-400">
+          Developed by <a href="https://www.advankart.com" target="_blank" rel="noopener" onClick={openAdvankart} className="font-semibold text-brand-700 underline-offset-2 hover:underline dark:text-brand-300">Advankart Solutions</a>
+        </div>
+        <a href="https://www.advankart.com" target="_blank" rel="noopener" onClick={openAdvankart} className="text-[0.75rem] text-slate-400 underline-offset-2 hover:underline">www.advankart.com</a>
+      </div>
 
       <Sheet open={pwOpen} onClose={() => setPwOpen(false)} title="Change password">
         <Field label="New password"><input type="password" className="field" value={pw} onChange={e => setPw(e.target.value)} minLength={6} autoComplete="new-password" /></Field>
