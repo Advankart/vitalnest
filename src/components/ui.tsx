@@ -1,5 +1,6 @@
 import { useEffect, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import { ChevronLeft, Loader2, X } from 'lucide-react';
 import { useApp } from '../lib/store';
 import { STATUS_STYLE, type Status } from '../lib/health';
@@ -90,7 +91,7 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
     return () => { window.removeEventListener('keydown', k); document.body.style.overflow = ''; };
   }, [open, onClose]);
   if (!open) return null;
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px]" onClick={onClose} />
       <div className="sheet-in safe-bottom relative max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-[28px] bg-white p-5 pb-6 dark:bg-night-2 sm:rounded-[28px]">
@@ -103,7 +104,8 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
         )}
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
