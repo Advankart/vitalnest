@@ -20,6 +20,17 @@ jobs:
           node-version: 22
           cache: npm
 
+      - name: Check Supabase secrets are complete
+        env:
+          URL: ${{ secrets.VITE_SUPABASE_URL }}
+          KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          ok=1
+          if printf '%s' "$KEY" | LC_ALL=C grep -q '[^!-~]'; then echo "::error::VITE_SUPABASE_ANON_KEY contains spaces or non-ASCII characters (e.g. '…' from a shortened copy). Re-copy it with the copy button in Supabase → Project Settings → API Keys."; ok=0; fi
+          case "$URL" in https://*.supabase.co) ;; *) echo "::error::VITE_SUPABASE_URL should look like https://xxxx.supabase.co"; ok=0;; esac
+          echo "Key length: ${#KEY}"
+          [ $ok = 1 ]
+
       - name: Install & build web app
         run: |
           npm ci
