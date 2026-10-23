@@ -16,7 +16,7 @@ export function Button({ variant = 'primary', loading, size = 'md', block, class
     danger: 'bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-500/15 dark:text-red-300',
     dark: 'bg-ink text-white hover:bg-slate-800 dark:bg-white dark:text-ink',
   }[variant];
-  const s = { sm: 'h-9 px-3.5 text-[13px] rounded-xl', md: 'h-12 px-5 text-[15px] rounded-2xl', lg: 'h-14 px-6 text-base rounded-2xl' }[size];
+  const s = { sm: 'h-9 px-3.5 text-[0.8125rem] rounded-xl', md: 'h-12 px-5 text-[0.9375rem] rounded-2xl', lg: 'h-14 px-6 text-base rounded-2xl' }[size];
   return (
     <button {...rest} disabled={disabled || loading}
       className={cx('inline-flex select-none items-center justify-center gap-2 font-semibold transition active:scale-[.98] disabled:opacity-50', v, s, block && 'w-full', className)}>
@@ -40,7 +40,7 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
     <div className={cx('no-scrollbar flex gap-1 overflow-x-auto rounded-2xl bg-slate-100 p-1 dark:bg-night-3', className)}>
       {options.map(o => (
         <button key={o.id} type="button" onClick={() => onChange(o.id)}
-          className={cx('flex-1 whitespace-nowrap rounded-xl px-3 py-2 text-[13px] font-semibold transition',
+          className={cx('flex-1 whitespace-nowrap rounded-xl px-3 py-2 text-[0.8125rem] font-semibold transition',
             value === o.id ? 'bg-white text-ink shadow-sm dark:bg-night-2 dark:text-white' : 'text-slate-500 dark:text-slate-400')}>
           {o.label}
         </button>
@@ -54,7 +54,7 @@ export function ChipSelect<T extends string>({ value, onChange, options }: { val
     <div className="flex flex-wrap gap-2">
       {options.map(o => (
         <button key={o.id} type="button" onClick={() => onChange(o.id)}
-          className={cx('rounded-full px-3.5 py-2 text-[13px] font-semibold ring-1 transition',
+          className={cx('rounded-full px-3.5 py-2 text-[0.8125rem] font-semibold ring-1 transition',
             value === o.id ? 'bg-brand-600 text-white ring-brand-600' : 'bg-white text-slate-600 ring-slate-200 dark:bg-night-3 dark:text-slate-300 dark:ring-white/10')}>
           {o.label}
         </button>
@@ -74,8 +74,8 @@ export function PageHeader({ title, subtitle, back = true, right }: { title: str
         </button>
       )}
       <div className="min-w-0 flex-1">
-        <h1 className="truncate text-[22px] font-bold">{title}</h1>
-        {subtitle && <p className="truncate text-[13px] text-slate-500 dark:text-slate-400">{subtitle}</p>}
+        <h1 className="truncate text-[1.375rem] font-bold">{title}</h1>
+        {subtitle && <p className="truncate text-[0.8125rem] text-slate-500 dark:text-slate-400">{subtitle}</p>}
       </div>
       {right}
     </div>
@@ -165,7 +165,7 @@ export function Section({ title, action, children, className }: { title: string;
   return (
     <section className={cx('mt-6', className)}>
       <div className="mb-2.5 flex items-center justify-between px-1">
-        <h2 className="text-[15px] font-bold text-slate-800 dark:text-slate-100">{title}</h2>
+        <h2 className="text-[0.9375rem] font-bold text-slate-800 dark:text-slate-100">{title}</h2>
         {action}
       </div>
       {children}
@@ -180,5 +180,5 @@ export function Spinner() {
 export function ViewOnlyNote() {
   const { canEdit } = useApp();
   if (canEdit) return null;
-  return <div className="mb-3 rounded-2xl bg-amber-50 px-4 py-3 text-[13px] text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">You have view-only access. Ask the family admin to make you a caregiver to add entries.</div>;
+  return <div className="mb-3 rounded-2xl bg-amber-50 px-4 py-3 text-[0.8125rem] text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">You have view-only access. Ask the family admin to make you a caregiver to add entries.</div>;
 }

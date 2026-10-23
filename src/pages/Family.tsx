@@ -18,7 +18,7 @@ export function Patients() {
   const { patients, role, selectPatient } = useApp();
   return (
     <div className="rise">
-      <PageHeader title="Health profiles" subtitle="Everyone tracked in this family" right={role !== 'viewer' ? <Link to="/patients/new" className="rounded-xl bg-brand-600 px-3.5 py-2 text-[13px] font-semibold text-white"><Plus className="mr-1 inline h-4 w-4" />Add</Link> : undefined} />
+      <PageHeader title="Health profiles" subtitle="Everyone tracked in this family" right={role !== 'viewer' ? <Link to="/patients/new" className="rounded-xl bg-brand-600 px-3.5 py-2 text-[0.8125rem] font-semibold text-white"><Plus className="mr-1 inline h-4 w-4" />Add</Link> : undefined} />
       <div className="space-y-2">
         {patients.map(p => (
           <Link key={p.id} to={`/patients/${p.id}`} onClick={() => selectPatient(p.id)} className="card flex items-center gap-3 p-4">
@@ -69,10 +69,10 @@ export default function Family() {
         ) : (
           <div className="flex items-center gap-2"><h2 className="text-xl font-bold">{membership.family.name}</h2>{role === 'admin' && <button onClick={() => setEditName(true)} className="opacity-70" aria-label="Rename"><Pencil className="h-4 w-4" /></button>}</div>
         )}
-        <p className="mt-1 text-[13px] text-white/75">Invite family members so they can see health stats from their own phone.</p>
+        <p className="mt-1 text-[0.8125rem] text-white/75">Invite family members so they can see health stats from their own phone.</p>
         <div className="mt-4 rounded-2xl bg-white/15 p-4 text-center ring-1 ring-white/20 backdrop-blur">
-          <div className="text-[11px] font-semibold uppercase tracking-widest text-white/70">Invite code</div>
-          <div className="mt-1 font-mono text-[34px] font-bold tracking-[.3em]">{code}</div>
+          <div className="text-[0.6875rem] font-semibold uppercase tracking-widest text-white/70">Invite code</div>
+          <div className="mt-1 font-mono font-bold tracking-[.2em]" style={{ fontSize: 'min(2.125rem, 9vw)' }}>{code}</div>
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2">
           <button onClick={() => shareText(invite, true)} className="flex items-center justify-center gap-2 rounded-2xl bg-[#25D366] py-3 text-sm font-semibold text-white"><MessageCircle className="h-4 w-4" />WhatsApp invite</button>
@@ -97,7 +97,7 @@ export default function Family() {
                   )}
                 </div>
                 {role === 'admin' && p.user_id !== user?.id && (
-                  <div className="mt-2 flex gap-1.5 pl-[52px]">
+                  <div className="mt-2 flex flex-wrap gap-1.5 pl-[3.25rem]">
                     {(Object.keys(ROLES) as Role[]).map(r => (
                       <button key={r} onClick={() => setRole(p, r)} className={cx('chip py-1.5', p.role === r ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-500 dark:bg-white/5')}>{ROLES[r].label}</button>
                     ))}
@@ -107,7 +107,7 @@ export default function Family() {
             );
           })}
         </div>
-        <p className="mt-2 px-1 text-[12px] text-slate-400">New members join as <b>Viewer</b>. Make someone a <b>Caregiver</b> if they log readings for others. A person can always edit their own profile if it's linked to their login.</p>
+        <p className="mt-2 px-1 text-[0.75rem] text-slate-400">New members join as <b>Viewer</b>. Make someone a <b>Caregiver</b> if they log readings for others. A person can always edit their own profile if it's linked to their login.</p>
       </Section>
     </div>
   );

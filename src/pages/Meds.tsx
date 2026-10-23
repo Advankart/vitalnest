@@ -46,7 +46,7 @@ function MedForm({ med, onClose }: { med: Partial<Medicine> | null; onClose: () 
       <Field label="Times">
         <div className="flex flex-wrap gap-2">
           {times.sort().map(t => (
-            <span key={t} className="chip bg-brand-600 py-2 pl-3 pr-2 text-[13px] text-white">{to12h(t)}<button onClick={() => up('times', times.filter(x => x !== t))} aria-label="Remove time"><X className="h-3.5 w-3.5" /></button></span>
+            <span key={t} className="chip bg-brand-600 py-2 pl-3 pr-2 text-[0.8125rem] text-white">{to12h(t)}<button onClick={() => up('times', times.filter(x => x !== t))} aria-label="Remove time"><X className="h-3.5 w-3.5" /></button></span>
           ))}
         </div>
         <div className="mt-2 flex gap-2">
@@ -101,14 +101,14 @@ export default function Meds() {
   return (
     <div className="rise">
       <div className="mb-4 flex items-center justify-between pt-1">
-        <div><h1 className="text-[24px] font-extrabold">Medicines</h1><p className="text-[13px] text-slate-500">{patient.full_name}</p></div>
+        <div><h1 className="text-[1.5rem] font-extrabold">Medicines</h1><p className="text-[0.8125rem] text-slate-500">{patient.full_name}</p></div>
         {canEdit && <Button size="sm" onClick={() => setEdit(null)}><Plus className="h-4 w-4" />Add</Button>}
       </div>
       <ViewOnlyNote />
       <Segmented value={tab} onChange={setTab} options={[{ id: 'schedule', label: 'Schedule' }, { id: 'all', label: `All medicines (${data.meds.length})` }]} />
 
       {lowStock.length > 0 && (
-        <div className="mt-4 rounded-3xl bg-amber-50 p-4 text-[13px] text-amber-900 ring-1 ring-amber-100 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/20">
+        <div className="mt-4 rounded-3xl bg-amber-50 p-4 text-[0.8125rem] text-amber-900 ring-1 ring-amber-100 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/20">
           <b>Refill soon:</b> {lowStock.map(m => `${m.name} (${m.stock} left)`).join(', ')}
         </div>
       )}
@@ -125,23 +125,21 @@ export default function Meds() {
             {Object.entries(groups).map(([t, items]) => {
               const past = isToday(day) && t < nowT;
               return (
-                <div key={t} className="flex gap-3">
-                  <div className="w-[68px] shrink-0 pt-3 text-right">
-                    <div className={cx('text-[13px] font-bold', past ? 'text-slate-400' : 'text-ink dark:text-white')}>{to12h(t)}</div>
-                  </div>
-                  <div className="min-w-0 flex-1 space-y-2">
+                <div key={t}>
+                  <div className={cx('mb-2 px-1 text-[0.875rem] font-bold', past ? 'text-slate-400' : 'text-ink dark:text-white')}>{to12h(t)}</div>
+                  <div className="space-y-2">
                     {items.map(({ med }) => {
                       const done = logFor(med.id, t)?.status === 'taken';
                       const missed = !done && past;
                       return (
                         <div key={med.id} className={cx('card flex items-center gap-3 p-3.5', missed && 'ring-amber-200 dark:ring-amber-500/30')}>
-                          <div className={cx('grid h-11 w-11 shrink-0 place-items-center rounded-2xl', med.form === 'insulin' || med.form === 'injection' ? 'bg-rose-50 text-rose-600 dark:bg-rose-500/10' : 'bg-purple-50 text-purple-600 dark:bg-purple-500/10')}>
+                          <div className={cx('lg-hide grid h-11 w-11 shrink-0 place-items-center rounded-2xl', med.form === 'insulin' || med.form === 'injection' ? 'bg-rose-50 text-rose-600 dark:bg-rose-500/10' : 'bg-purple-50 text-purple-600 dark:bg-purple-500/10')}>
                             {med.form === 'insulin' || med.form === 'injection' ? <Syringe className="h-5 w-5" /> : <Pill className="h-5 w-5" />}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className={cx('truncate font-semibold', done && 'text-slate-400 line-through')}>{med.name} <span className="text-[13px] font-normal text-slate-400">{med.strength}</span></div>
-                            <div className="truncate text-xs text-slate-500">{[med.dose, FOOD_REL[med.food_relation ?? '']].filter(Boolean).join(' · ')}</div>
-                            {missed && <div className="text-[11px] font-semibold text-amber-600">Not marked yet</div>}
+                            <div className={cx('break-words font-semibold', done && 'text-slate-400 line-through')}>{med.name} <span className="text-[0.8125rem] font-normal text-slate-400">{med.strength}</span></div>
+                            <div className="text-xs text-slate-500">{[med.dose, FOOD_REL[med.food_relation ?? '']].filter(Boolean).join(' · ')}</div>
+                            {missed && <div className="text-[0.6875rem] font-semibold text-amber-600">Not marked yet</div>}
                           </div>
                           <button onClick={() => toggle(med, t)} aria-label="Mark taken" className={cx('grid h-11 w-11 shrink-0 place-items-center rounded-full ring-2 transition active:scale-90', done ? 'bg-brand-600 text-white ring-brand-600' : 'text-slate-300 ring-slate-200 dark:ring-white/10')}>
                             <Check className="h-5 w-5" strokeWidth={3} />
@@ -163,7 +161,7 @@ export default function Meds() {
               <button key={m.id} onClick={() => canEdit && setEdit(m)} className={cx('card flex w-full items-center gap-3 p-4 text-left', !m.active && 'opacity-50')}>
                 <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-purple-50 text-purple-600 dark:bg-purple-500/10">{m.form === 'insulin' ? <Syringe className="h-5 w-5" /> : <Pill className="h-5 w-5" />}</div>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate font-semibold">{m.name} <span className="text-[13px] font-normal text-slate-400">{m.strength}</span></div>
+                  <div className="truncate font-semibold">{m.name} <span className="text-[0.8125rem] font-normal text-slate-400">{m.strength}</span></div>
                   <div className="flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
                     <span className="flex items-center gap-1"><AlarmClock className="h-3 w-3" />{m.times.map(to12h).join(', ')}</span>
                     {m.days.length < 7 && <span>{m.days.map(d => DAY_SHORT[d]).join(' ')}</span>}

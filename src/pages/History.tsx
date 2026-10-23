@@ -38,20 +38,20 @@ export default function History() {
       {!groups.length && <Empty icon={<ListX className="h-7 w-7" />} title="Nothing here yet" />}
       {groups.map(g => (
         <div key={g.day} className="mb-4">
-          <div className="mb-2 px-1 text-[12px] font-bold uppercase tracking-wide text-slate-400">{g.day}</div>
+          <div className="mb-2 px-1 text-[0.75rem] font-bold uppercase tracking-wide text-slate-400">{g.day}</div>
           <div className="card divide-y divide-slate-100 dark:divide-white/5">
             {g.items.map(v => {
               const m = VITALS[v.kind], st = classify(v, patient);
               return (
                 <div key={v.id} className="flex items-center gap-3 px-4 py-3">
-                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl" style={{ background: m.color + '18', color: m.color }}><VitalIcon kind={v.kind} className="h-[18px] w-[18px]" /></div>
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl" style={{ background: m.color + '18', color: m.color }}><VitalIcon kind={v.kind} className="h-[1.125rem] w-[1.125rem]" /></div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[14px] font-semibold">{m.label}</div>
+                    <div className="text-[0.875rem] font-semibold">{m.label}</div>
                     <div className="truncate text-xs text-slate-400">{format(new Date(v.measured_at), 'h:mm a')}{v.context ? ` · ${ctxLabel(v.context)}` : ''}{v.notes ? ` · ${v.notes}` : ''}</div>
                   </div>
                   <div className="text-right">
-                    <div className="font-display font-bold">{fmtVital(v)}<span className="text-[11px] font-medium text-slate-400"> {m.unit}</span></div>
-                    <div className="text-[11px] font-semibold" style={{ color: STATUS_STYLE[st].dot }}>{STATUS_STYLE[st].label}</div>
+                    <div className="font-display font-bold">{fmtVital(v)}<span className="text-[0.6875rem] font-medium text-slate-400"> {m.unit}</span></div>
+                    <div className="text-[0.6875rem] font-semibold" style={{ color: STATUS_STYLE[st].dot }}>{STATUS_STYLE[st].label}</div>
                   </div>
                   {canEdit && <button onClick={() => del(v.id)} className="-mr-2 p-2 text-slate-300 hover:text-red-500" aria-label="Delete"><Trash2 className="h-4 w-4" /></button>}
                 </div>

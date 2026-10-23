@@ -13,7 +13,7 @@ const RELATIONS = ['Self', 'Father', 'Mother', 'Spouse', 'Son', 'Daughter', 'Gra
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="card mt-4 p-5">
-      <h2 className="mb-4 text-[15px] font-bold">{title}</h2>
+      <h2 className="mb-4 text-[0.9375rem] font-bold">{title}</h2>
       <div className="grid grid-cols-2 gap-3">{children}</div>
     </section>
   );
@@ -76,9 +76,9 @@ export default function PatientForm() {
         <div className="min-w-0 flex-1">
           <input {...txt('full_name')} className="w-full bg-transparent font-display text-xl font-bold outline-none placeholder:text-slate-300" placeholder="Full name" />
           <div className="mt-1 text-sm text-slate-500">{[a !== null ? `${a} yrs` : null, p.gender, p.blood_group, b ? `BMI ${b.toFixed(1)}` : null].filter(Boolean).join(' · ') || 'Fill in details below'}</div>
-          <div className="mt-3 flex gap-1.5">
+          <div className="mt-3 flex flex-wrap gap-1.5">
             {AVATAR_COLORS.map(c => (
-              <button key={c} onClick={() => up('color', c)} className="grid h-6 w-6 place-items-center rounded-full" style={{ background: c }} aria-label="Colour">
+              <button key={c} onClick={() => up('color', c)} className="grid h-6 w-6 shrink-0 place-items-center rounded-full" style={{ background: c }} aria-label="Colour">
                 {p.color === c && <Check className="h-3.5 w-3.5 text-white" />}
               </button>
             ))}
@@ -87,13 +87,13 @@ export default function PatientForm() {
       </div>
 
       <section className="card mt-4 p-5">
-        <h2 className="mb-3 text-[15px] font-bold">Condition</h2>
+        <h2 className="mb-3 text-[0.9375rem] font-bold">Condition</h2>
         <div className="grid gap-2">
           {(Object.keys(CONDITIONS) as Condition[]).map(c => (
             <button key={c} onClick={() => canEditThis && setCondition(c)}
               className={cx('flex items-center gap-3 rounded-2xl p-3.5 text-left ring-1 transition', p.condition === c ? 'bg-brand-50 ring-2 ring-brand-500 dark:bg-brand-500/10' : 'ring-slate-200 dark:ring-white/10')}>
-              <div className={cx('grid h-5 w-5 place-items-center rounded-full border-2', p.condition === c ? 'border-brand-600 bg-brand-600' : 'border-slate-300')}>{p.condition === c && <Check className="h-3 w-3 text-white" />}</div>
-              <div><div className="text-[14px] font-semibold">{CONDITIONS[c].label}</div><div className="text-xs text-slate-500">{CONDITIONS[c].desc}</div></div>
+              <div className={cx('grid h-5 w-5 shrink-0 place-items-center rounded-full border-2', p.condition === c ? 'border-brand-600 bg-brand-600' : 'border-slate-300')}>{p.condition === c && <Check className="h-3 w-3 text-white" />}</div>
+              <div><div className="text-[0.875rem] font-semibold">{CONDITIONS[c].label}</div><div className="text-xs text-slate-500">{CONDITIONS[c].desc}</div></div>
             </button>
           ))}
         </div>

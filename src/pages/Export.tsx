@@ -120,7 +120,7 @@ export default function Export() {
         </div>
       )}
 
-      <h2 className="mb-2 mt-6 px-1 text-[15px] font-bold">WhatsApp</h2>
+      <h2 className="mb-2 mt-6 px-1 text-[0.9375rem] font-bold">WhatsApp</h2>
       <div className="flex justify-center rounded-[32px] bg-gradient-to-b from-emerald-50 to-teal-50 p-5 dark:from-white/5 dark:to-white/[.02]">
         <ShareCard ref={cardRef} p={patient} d={d} days={days} />
       </div>
@@ -129,11 +129,11 @@ export default function Export() {
         <Act k="txt" icon={<MessageCircle className="h-5 w-5" />} label="Send as WhatsApp message" sub="Neatly formatted text summary" onClick={text} color="#128C7E" />
       </div>
 
-      <h2 className="mb-2 mt-6 px-1 text-[15px] font-bold">Files</h2>
+      <h2 className="mb-2 mt-6 px-1 text-[0.9375rem] font-bold">Files</h2>
       <div className="grid gap-2">
         <Act k="pdftrue" icon={<FileText className="h-5 w-5" />} label="PDF report for doctor" sub="Profile, summary, charts, readings & medicines" onClick={() => pdf(true)} color="#dc2626" />
         <Act k="xlsxtrue" icon={<FileSpreadsheet className="h-5 w-5" />} label="Excel workbook" sub="Separate sheets: vitals, sugar, BP, medicines, food, water" onClick={() => excel(true)} color="#16a34a" />
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(6rem,1fr))] gap-2">
           <Button variant="soft" size="sm" onClick={() => pdf(false)} disabled={!!busy}><Download className="h-4 w-4" />PDF</Button>
           <Button variant="soft" size="sm" onClick={() => excel(false)} disabled={!!busy}><Download className="h-4 w-4" />Excel</Button>
           <Button variant="soft" size="sm" onClick={csv} disabled={!!busy}><SheetIcon className="h-4 w-4" />CSV</Button>

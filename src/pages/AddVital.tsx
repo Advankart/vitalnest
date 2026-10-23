@@ -25,14 +25,14 @@ function BigNumber({ value, onChange, step, min, max, unit, label, autoFocus }: 
   };
   return (
     <div className="flex-1">
-      {label && <div className="mb-1 text-center text-[12px] font-semibold uppercase tracking-wide text-slate-400">{label}</div>}
+      {label && <div className="mb-1 text-center text-[0.75rem] font-semibold uppercase tracking-wide text-slate-400">{label}</div>}
       <div className="flex items-center gap-2">
         <button type="button" onClick={() => bump(-step)} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-600 active:scale-90 dark:bg-white/5 dark:text-slate-300" aria-label="Decrease"><Minus className="h-5 w-5" /></button>
         <input value={value} onChange={e => onChange(e.target.value.replace(/[^\d.]/g, ''))} inputMode="decimal" autoFocus={autoFocus}
-          className="w-full min-w-0 bg-transparent text-center font-display text-[46px] font-extrabold leading-none outline-none placeholder:text-slate-200 dark:placeholder:text-slate-700" placeholder="0" />
+          className="w-full min-w-0 bg-transparent text-center font-display text-[2.875rem] font-extrabold leading-none outline-none placeholder:text-slate-200 dark:placeholder:text-slate-700" placeholder="0" />
         <button type="button" onClick={() => bump(step)} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-600 active:scale-90 dark:bg-white/5 dark:text-slate-300" aria-label="Increase"><Plus className="h-5 w-5" /></button>
       </div>
-      {unit && <div className="mt-1 text-center text-[13px] font-medium text-slate-400">{unit}</div>}
+      {unit && <div className="mt-1 text-center text-[0.8125rem] font-medium text-slate-400">{unit}</div>}
     </div>
   );
 }
@@ -104,7 +104,7 @@ export default function AddVital() {
               <div className="flex gap-2">
                 <BigNumber label="Diastolic (lower)" value={v2} onChange={setV2} step={1} min={30} max={160} />
               </div>
-              <div className="mx-auto w-full max-w-[260px]">
+              <div className="mx-auto w-full max-w-[16.25rem]">
                 <BigNumber label="Pulse (optional)" value={v3} onChange={setV3} step={1} min={25} max={230} unit="bpm" />
               </div>
             </>
@@ -117,14 +117,14 @@ export default function AddVital() {
         )}
       </div>
 
-      {adv && <div className="mt-3 rounded-3xl bg-amber-50 p-4 text-[13.5px] leading-snug text-amber-900 ring-1 ring-amber-100 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/20">{adv}</div>}
+      {adv && <div className="mt-3 rounded-3xl bg-amber-50 p-4 text-[0.8438rem] leading-snug text-amber-900 ring-1 ring-amber-100 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/20">{adv}</div>}
 
       <div className="card mt-4 space-y-4 p-5">
         {k === 'glucose' && (
           <Field label="When was this measured?"><ChipSelect value={ctx} onChange={setCtx} options={GLUCOSE_CONTEXTS} /></Field>
         )}
         <div>
-          <button type="button" onClick={() => setCustomTime(!customTime)} className="flex items-center gap-2 text-[13px] font-semibold text-brand-700 dark:text-brand-300">
+          <button type="button" onClick={() => setCustomTime(!customTime)} className="flex items-center gap-2 text-[0.8125rem] font-semibold text-brand-700 dark:text-brand-300">
             <CalendarClock className="h-4 w-4" />{customTime ? 'Use current time' : 'Measured earlier? Change time'}
           </button>
           {customTime && <input type="datetime-local" className="field mt-2" value={when} max={toLocalInput(new Date())} onChange={e => setWhen(e.target.value)} />}
@@ -132,13 +132,13 @@ export default function AddVital() {
         <Field label="Notes (optional)"><input className="field" value={notes} onChange={e => setNotes(e.target.value)} placeholder={k === 'glucose' ? 'e.g. had sweets, missed walk, felt shaky' : 'e.g. after walk, felt dizzy'} /></Field>
       </div>
 
-      <div className="sticky bottom-24 z-10 mt-4">
+      <div className="mt-4">
         <Button block size="lg" loading={busy} onClick={save} disabled={!canEdit || !v1}>Save reading</Button>
       </div>
 
       {recent.length > 0 && (
         <div className="mt-6">
-          <h2 className="mb-2 px-1 text-[15px] font-bold">Recent {meta.label.toLowerCase()}</h2>
+          <h2 className="mb-2 px-1 text-[0.9375rem] font-bold">Recent {meta.label.toLowerCase()}</h2>
           <div className="card divide-y divide-slate-100 dark:divide-white/5">
             {recent.map(v => {
               const s = classify(v, patient);

@@ -53,9 +53,9 @@ export default function Auth() {
           <div className="mb-6 grid h-14 w-14 place-items-center rounded-2xl bg-white/15 ring-1 ring-white/25 backdrop-blur">
             <HeartPulse className="h-7 w-7" />
           </div>
-          <h1 className="text-[32px] font-extrabold leading-tight">VitalNest</h1>
-          <p className="mt-2 max-w-xs text-[15px] text-white/80">Sugar, BP, heart and medicines — tracked together for the whole family.</p>
-          <div className="mt-6 flex flex-wrap gap-2 text-[12px] font-semibold">
+          <h1 className="text-[2rem] font-extrabold leading-tight">VitalNest</h1>
+          <p className="mt-2 max-w-xs text-[0.9375rem] text-white/80">Sugar, BP, heart and medicines — tracked together for the whole family.</p>
+          <div className="mt-6 flex flex-wrap gap-2 text-[0.75rem] font-semibold">
             <span className="chip bg-white/15 py-1.5"><Users className="h-3.5 w-3.5" />Family sharing</span>
             <span className="chip bg-white/15 py-1.5"><BellRing className="h-3.5 w-3.5" />Smart reminders</span>
             <span className="chip bg-white/15 py-1.5"><ShieldCheck className="h-3.5 w-3.5" />Private & secure</span>
@@ -87,13 +87,13 @@ export default function Auth() {
         <div className="mt-5 space-y-2 text-center">
           <button onClick={tryDemo} className="text-sm font-semibold text-brand-700 dark:text-brand-300">Explore with sample data →</button>
           {!isNative() && (
-            <div><a href="https://github.com/Advankart/vitalnest/releases/latest/download/VitalNest.apk" className="mt-2 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-[13px] font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200 dark:bg-night-2 dark:text-slate-200 dark:ring-white/10"><Smartphone className="h-4 w-4 text-brand-600" />Download Android app</a></div>
+            <div><a href="https://github.com/Advankart/vitalnest/releases/latest/download/VitalNest.apk" className="mt-2 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-[0.8125rem] font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200 dark:bg-night-2 dark:text-slate-200 dark:ring-white/10"><Smartphone className="h-4 w-4 text-brand-600" />Download Android app</a></div>
           )}
           {!hasBuiltInServer && (
             <div><button onClick={() => setSrv(true)} className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400"><Server className="h-3.5 w-3.5" />Server settings</button></div>
           )}
         </div>
-        <p className="mx-auto mt-8 max-w-xs text-center text-[11px] leading-relaxed text-slate-400">
+        <p className="mx-auto mt-8 max-w-xs text-center text-[0.6875rem] leading-relaxed text-slate-400">
           VitalNest helps you keep records. It does not give medical diagnoses — always follow your doctor's advice.
         </p>
       </div>

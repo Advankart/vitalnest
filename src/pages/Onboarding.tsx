@@ -30,7 +30,7 @@ export default function Onboarding() {
         <div className="text-sm text-slate-500">Signed in as <b>{user?.username}</b></div>
         <button onClick={() => api().signOut().then(refreshAuth)} className="flex items-center gap-1 text-sm text-slate-400"><LogOut className="h-4 w-4" />Sign out</button>
       </div>
-      <h1 className="mt-8 text-[28px] font-extrabold">Set up your family</h1>
+      <h1 className="mt-8 text-[1.75rem] font-extrabold">Set up your family</h1>
       <p className="mt-1 text-slate-500">Create a family group to track health for everyone, or join one with an invite code.</p>
 
       <div className="mt-6 grid grid-cols-2 gap-3">

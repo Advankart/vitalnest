@@ -38,12 +38,12 @@ export function FoodLog() {
       </div>
       <div className="card flex items-center gap-5 p-5">
         <Ring pct={kcal / patient.daily_kcal_goal * 100} size={96} stroke={9} color={kcal > patient.daily_kcal_goal ? '#f97316' : '#22c55e'}>
-          <div className="text-center"><div className="font-display text-xl font-extrabold leading-none">{Math.round(kcal)}</div><div className="text-[10px] text-slate-400">of {patient.daily_kcal_goal}</div></div>
+          <div className="text-center"><div className="font-display text-xl font-extrabold leading-none">{Math.round(kcal)}</div><div className="text-[0.625rem] text-slate-400">of {patient.daily_kcal_goal}</div></div>
         </Ring>
         <div className="grid flex-1 grid-cols-2 gap-3">
-          <div><div className="text-[11.5px] text-slate-500">Carbs</div><div className="font-display text-xl font-bold">{Math.round(carbs)}<span className="text-xs font-medium text-slate-400"> g</span></div></div>
-          <div><div className="text-[11.5px] text-slate-500">Protein</div><div className="font-display text-xl font-bold">{Math.round(protein)}<span className="text-xs font-medium text-slate-400"> g</span></div></div>
-          <div className="col-span-2 text-[11.5px] text-slate-400">{kcal <= patient.daily_kcal_goal ? `${Math.round(patient.daily_kcal_goal - kcal)} kcal left today` : `${Math.round(kcal - patient.daily_kcal_goal)} kcal over goal`}</div>
+          <div><div className="text-[0.7188rem] text-slate-500">Carbs</div><div className="font-display text-xl font-bold">{Math.round(carbs)}<span className="text-xs font-medium text-slate-400"> g</span></div></div>
+          <div><div className="text-[0.7188rem] text-slate-500">Protein</div><div className="font-display text-xl font-bold">{Math.round(protein)}<span className="text-xs font-medium text-slate-400"> g</span></div></div>
+          <div className="col-span-2 text-[0.7188rem] text-slate-400">{kcal <= patient.daily_kcal_goal ? `${Math.round(patient.daily_kcal_goal - kcal)} kcal left today` : `${Math.round(kcal - patient.daily_kcal_goal)} kcal over goal`}</div>
         </div>
       </div>
       <div className="mt-4 space-y-3">
@@ -55,10 +55,10 @@ export function FoodLog() {
               <div className="flex items-center gap-2"><span className="font-display font-bold">{Math.round(m.total_kcal)} <span className="text-xs font-medium text-slate-400">kcal</span></span>
                 {canEdit && <button onClick={() => del(m.id)} className="p-1 text-slate-300 hover:text-red-500" aria-label="Delete"><Trash2 className="h-4 w-4" /></button>}</div>
             </div>
-            <ul className="mt-2 space-y-1 text-[13px] text-slate-600 dark:text-slate-300">
+            <ul className="mt-2 space-y-1 text-[0.8125rem] text-slate-600 dark:text-slate-300">
               {m.items.map((it, i) => <li key={i} className="flex justify-between"><span>{it.qty} × {it.name} <span className="text-slate-400">({it.unit})</span></span><span className="text-slate-400">{Math.round(it.kcal)}</span></li>)}
             </ul>
-            <div className="mt-2 text-[11.5px] text-slate-400">{Math.round(m.total_carbs)} g carbs · {Math.round(m.total_protein)} g protein</div>
+            <div className="mt-2 text-[0.7188rem] text-slate-400">{Math.round(m.total_carbs)} g carbs · {Math.round(m.total_protein)} g protein</div>
           </div>
         )))}
       </div>
@@ -131,7 +131,7 @@ export function AddMeal() {
           {items.map((it, i) => (
             <div key={it.name} className="flex items-center gap-3 px-4 py-3">
               <div className="min-w-0 flex-1">
-                <div className="truncate text-[14px] font-semibold">{it.name}</div>
+                <div className="truncate text-[0.875rem] font-semibold">{it.name}</div>
                 <div className="text-xs text-slate-400">{Math.round(it.kcal)} kcal · {Math.round(it.carbs)} g carbs · per {it.unit}</div>
               </div>
               <div className="flex items-center gap-1.5">
@@ -150,10 +150,10 @@ export function AddMeal() {
             {(off ?? results).map(f => (
               <button key={f.name + f.unit} onClick={() => add(f)} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-white/5">
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[14px] font-medium">{f.name}</div>
+                  <div className="truncate text-[0.875rem] font-medium">{f.name}</div>
                   <div className="text-xs text-slate-400">per {f.unit} · {f.carbs} g carbs{f.gi ? <span className={GI_STYLE[f.gi]}> · {f.gi} GI</span> : null}</div>
                 </div>
-                <div className="text-right"><div className="font-display font-bold">{f.kcal}</div><div className="text-[10px] text-slate-400">kcal</div></div>
+                <div className="text-right"><div className="font-display font-bold">{f.kcal}</div><div className="text-[0.625rem] text-slate-400">kcal</div></div>
                 <Plus className="h-5 w-5 text-brand-600" />
               </button>
             ))}
@@ -162,7 +162,7 @@ export function AddMeal() {
           {q.length > 2 && !off && (
             <Button variant="soft" block className="mt-3" loading={offBusy} onClick={searchOff}><Globe className="h-4 w-4" />Search packaged foods (Open Food Facts)</Button>
           )}
-          <button onClick={() => setAddOpen(true)} className="mt-3 w-full text-center text-[13px] font-semibold text-brand-700 dark:text-brand-300">+ Add your own food</button>
+          <button onClick={() => setAddOpen(true)} className="mt-3 w-full text-center text-[0.8125rem] font-semibold text-brand-700 dark:text-brand-300">+ Add your own food</button>
         </div>
       )}
 

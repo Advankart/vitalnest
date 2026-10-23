@@ -22,8 +22,8 @@ function PatientSwitcher() {
       <button onClick={() => setOpen(true)} className="flex min-w-0 items-center gap-2.5 rounded-full py-1 pl-1 pr-3 transition hover:bg-slate-200/50 dark:hover:bg-white/5">
         <Avatar name={patient.full_name} color={patient.color} size={38} />
         <div className="min-w-0 text-left">
-          <div className="flex items-center gap-1 truncate font-display text-[15px] font-bold leading-tight">{patient.full_name.split(' ')[0]}<ChevronDown className="h-4 w-4 text-slate-400" /></div>
-          <div className="truncate text-[11.5px] font-medium text-slate-500 dark:text-slate-400">{CONDITIONS[patient.condition].label}</div>
+          <div className="flex items-center gap-1 truncate font-display text-[0.9375rem] font-bold leading-tight">{patient.full_name.split(' ')[0]}<ChevronDown className="h-4 w-4 text-slate-400" /></div>
+          <div className="truncate text-[0.7188rem] font-medium text-slate-500 dark:text-slate-400">{CONDITIONS[patient.condition].label}</div>
         </div>
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} title="Switch person">
@@ -49,7 +49,7 @@ function PatientSwitcher() {
             <div className="flex flex-wrap gap-2">
               {memberships.map(m => (
                 <button key={m.family.id} onClick={() => { selectFamily(m.family.id); setOpen(false); }}
-                  className={cx('chip px-3 py-2 text-[13px]', m.family.id === membership?.family.id ? 'bg-brand-600 text-white' : 'bg-slate-100 dark:bg-white/5')}>{m.family.name}</button>
+                  className={cx('chip px-3 py-2 text-[0.8125rem]', m.family.id === membership?.family.id ? 'bg-brand-600 text-white' : 'bg-slate-100 dark:bg-white/5')}>{m.family.name}</button>
               ))}
             </div>
           </div>
@@ -67,12 +67,12 @@ function QuickAdd({ open, onClose }: { open: boolean; onClose: () => void }) {
   const Tile = ({ icon, label, color, onClick }: { icon: ReactNode; label: string; color: string; onClick: () => void }) => (
     <button onClick={onClick} className="flex flex-col items-center gap-2 rounded-2xl p-3 transition hover:bg-slate-50 active:scale-95 dark:hover:bg-white/5">
       <div className="grid h-14 w-14 place-items-center rounded-2xl text-white shadow-lg" style={{ background: `linear-gradient(140deg, ${color}, ${color}bb)`, boxShadow: `0 10px 20px -10px ${color}` }}>{icon}</div>
-      <span className="text-center text-[12px] font-semibold leading-tight text-slate-700 dark:text-slate-200">{label}</span>
+      <span className="text-center text-[0.75rem] font-semibold leading-tight text-slate-700 dark:text-slate-200">{label}</span>
     </button>
   );
   return (
     <Sheet open={open} onClose={onClose} title="Add entry">
-      <div className="grid grid-cols-4 gap-1">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(5rem,1fr))] gap-1">
         {kinds.map(k => <Tile key={k} icon={<VitalIcon kind={k} className="h-6 w-6" />} label={VITALS[k].label} color={VITALS[k].color} onClick={() => go(`/add/${k}`)} />)}
         <Tile icon={<Flame className="h-6 w-6" />} label="Food" color="#16a34a" onClick={() => go('/food/add')} />
         <Tile icon={<Droplets className="h-6 w-6" />} label="Water" color="#0284c7" onClick={() => go('/water')} />
@@ -93,8 +93,8 @@ export default function Layout() {
   const isHome = loc.pathname === '/';
 
   const Tab = ({ to, icon, label }: { to: string; icon: ReactNode; label: string }) => (
-    <NavLink to={to} end={to === '/'} className={({ isActive }) => cx('flex flex-1 flex-col items-center gap-0.5 py-2 text-[10.5px] font-semibold transition', isActive ? 'text-brand-600 dark:text-brand-300' : 'text-slate-400')}>
-      {icon}<span>{label}</span>
+    <NavLink to={to} end={to === '/'} className={({ isActive }) => cx('flex min-w-0 flex-1 flex-col items-center gap-0.5 py-2 text-[0.6562rem] font-semibold transition', isActive ? 'text-brand-600 dark:text-brand-300' : 'text-slate-400')}>
+      {icon}<span className="nav-label block max-w-full truncate">{label}</span>
     </NavLink>
   );
 
@@ -105,7 +105,7 @@ export default function Layout() {
           <div className="flex items-center justify-between px-4 py-2.5">
             <PatientSwitcher />
             <button onClick={() => nav('/reminders')} aria-label="Reminders" className="grid h-10 w-10 place-items-center rounded-full bg-white text-slate-600 shadow-sm ring-1 ring-slate-900/5 dark:bg-night-2 dark:text-slate-300 dark:ring-white/5">
-              <Bell className="h-[18px] w-[18px]" />
+              <Bell className="h-[1.125rem] w-[1.125rem]" />
             </button>
           </div>
         </header>
@@ -128,16 +128,16 @@ export default function Layout() {
       <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40">
         <div className="mx-auto max-w-xl px-3 pb-2">
           <div className="relative flex items-center rounded-[26px] bg-white/90 px-2 shadow-[0_10px_40px_-12px_rgba(15,23,42,.25)] ring-1 ring-slate-900/5 backdrop-blur-xl dark:bg-night-2/90 dark:ring-white/10">
-            <Tab to="/" icon={<Home className="h-[22px] w-[22px]" />} label="Home" />
-            <Tab to="/trends" icon={<Activity className="h-[22px] w-[22px]" />} label="Trends" />
+            <Tab to="/" icon={<Home className="h-[1.375rem] w-[1.375rem]" />} label="Home" />
+            <Tab to="/trends" icon={<Activity className="h-[1.375rem] w-[1.375rem]" />} label="Trends" />
             <div className="flex flex-1 justify-center">
               <button onClick={() => setQa(true)} aria-label="Add entry"
-                className="-mt-7 grid h-[60px] w-[60px] place-items-center rounded-full bg-gradient-to-br from-brand-400 to-brand-700 text-white shadow-[0_12px_24px_-8px_rgba(13,148,136,.8)] ring-4 ring-canvas transition active:scale-95 dark:ring-night">
+                className="-mt-7 grid h-[3.75rem] w-[3.75rem] place-items-center rounded-full bg-gradient-to-br from-brand-400 to-brand-700 text-white shadow-[0_12px_24px_-8px_rgba(13,148,136,.8)] ring-4 ring-canvas transition active:scale-95 dark:ring-night">
                 <Plus className="h-7 w-7" strokeWidth={2.5} />
               </button>
             </div>
-            <Tab to="/meds" icon={<Pill className="h-[22px] w-[22px]" />} label="Medicines" />
-            <Tab to="/more" icon={<LayoutGrid className="h-[22px] w-[22px]" />} label="More" />
+            <Tab to="/meds" icon={<Pill className="h-[1.375rem] w-[1.375rem]" />} label="Medicines" />
+            <Tab to="/more" icon={<LayoutGrid className="h-[1.375rem] w-[1.375rem]" />} label="More" />
           </div>
         </div>
       </nav>

@@ -13,7 +13,7 @@ function Card({ title, kind, right, children }: { title: string; kind?: string; 
     <section className="card mt-4 p-4">
       <div className="mb-3 flex items-center gap-2.5">
         {kind && <div className="grid h-8 w-8 place-items-center rounded-lg" style={{ background: (VITALS as any)[kind]?.color + '18' || '#e2e8f0', color: (VITALS as any)[kind]?.color }}><VitalIcon kind={kind} className="h-4 w-4" /></div>}
-        <h2 className="flex-1 text-[15px] font-bold">{title}</h2>
+        <h2 className="flex-1 text-[0.9375rem] font-bold">{title}</h2>
         {right}
       </div>
       {children}
@@ -23,8 +23,8 @@ function Card({ title, kind, right, children }: { title: string; kind?: string; 
 function Stat({ label, value, unit }: { label: string; value: string; unit?: string }) {
   return (
     <div className="rounded-2xl bg-slate-50 px-3 py-2.5 dark:bg-white/[.03]">
-      <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{label}</div>
-      <div className="font-display text-[17px] font-bold">{value}<span className="text-[11px] font-medium text-slate-400"> {unit}</span></div>
+      <div className="text-[0.6875rem] font-medium text-slate-500 dark:text-slate-400">{label}</div>
+      <div className="font-display text-[1.0625rem] font-bold">{value}<span className="text-[0.6875rem] font-medium text-slate-400"> {unit}</span></div>
     </div>
   );
 }
@@ -70,15 +70,15 @@ export default function Trends() {
   return (
     <div className="rise">
       <div className="mb-4 flex items-center justify-between pt-1">
-        <div><h1 className="text-[24px] font-extrabold">Trends</h1><p className="text-[13px] text-slate-500">{patient.full_name}</p></div>
-        <Link to="/export" className="flex items-center gap-1.5 rounded-full bg-brand-600 px-4 py-2 text-[13px] font-semibold text-white shadow-md"><Share2 className="h-4 w-4" />Share</Link>
+        <div><h1 className="text-[1.5rem] font-extrabold">Trends</h1><p className="text-[0.8125rem] text-slate-500">{patient.full_name}</p></div>
+        <Link to="/export" className="flex items-center gap-1.5 rounded-full bg-brand-600 px-4 py-2 text-[0.8125rem] font-semibold text-white shadow-md"><Share2 className="h-4 w-4" />Share</Link>
       </div>
       <Segmented value={range} onChange={setRange} options={[{ id: '7', label: '7 days' }, { id: '30', label: '30 days' }, { id: '90', label: '3 months' }, { id: '365', label: '1 year' }]} />
 
       <Card title="Blood sugar" kind="glucose" right={<Delta now={gs.avg} prev={gp.avg} />}>
         {g.length ? <>
           <GlucoseChart vitals={g} patient={patient} days={days} />
-          <div className="mt-3 grid grid-cols-3 gap-2">
+          <div className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(6.5rem,1fr))] gap-2">
             <Stat label="Average" value={Math.round(gs.avg).toString()} unit="mg/dL" />
             <Stat label="Fasting avg" value={fast.n ? Math.round(fast.avg).toString() : '—'} unit="mg/dL" />
             <Stat label="After-meal avg" value={pp.n ? Math.round(pp.avg).toString() : '—'} unit="mg/dL" />
@@ -86,14 +86,14 @@ export default function Trends() {
             <Stat label="Highest" value={Math.round(gs.max).toString()} unit="mg/dL" />
             <Stat label="Est. HbA1c" value={gs.n >= 10 ? eA1c(gs.avg).toFixed(1) : '—'} unit="%" />
           </div>
-          <p className="mt-2 text-[11.5px] text-slate-400">{gs.n} readings · variability (CV) {gs.avg ? (gs.sd / gs.avg * 100).toFixed(0) : 0}% {gs.avg && gs.sd / gs.avg > 0.36 ? '— high, discuss with doctor' : ''}. Dots are coloured by status; green band = 70–180 mg/dL.</p>
+          <p className="mt-2 text-[0.7188rem] text-slate-400">{gs.n} readings · variability (CV) {gs.avg ? (gs.sd / gs.avg * 100).toFixed(0) : 0}% {gs.avg && gs.sd / gs.avg > 0.36 ? '— high, discuss with doctor' : ''}. Dots are coloured by status; green band = 70–180 mg/dL.</p>
         </> : <p className="py-6 text-center text-sm text-slate-400">No sugar readings in this period</p>}
       </Card>
 
       {g.length > 0 && (
         <Card title="Time in range">
           <TIRBar tir={tir} />
-          <p className="mt-3 text-[11.5px] text-slate-400">Common goal: more than 70% in range and less than 4% low (international consensus for most adults; your doctor may set different goals).</p>
+          <p className="mt-3 text-[0.7188rem] text-slate-400">Common goal: more than 70% in range and less than 4% low (international consensus for most adults; your doctor may set different goals).</p>
         </Card>
       )}
 
@@ -106,13 +106,13 @@ export default function Trends() {
       {(hasK('bp') || patient.condition === 'type2_cardiac') && (
         <Card title="Blood pressure" kind="bp" right={<Delta now={sys.avg} prev={sysPrev.avg} />}>
           {bp.length ? <>
-            <div className="mb-2 flex gap-4 text-[12px] font-medium text-slate-500">
+            <div className="mb-2 flex flex-wrap gap-x-4 gap-y-1 text-[0.75rem] font-medium text-slate-500">
               <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 rounded" style={{ background: SERIES.sys }} />Systolic</span>
               <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 rounded" style={{ background: SERIES.dia }} />Diastolic</span>
               <span className="flex items-center gap-1.5"><span className="w-4 border-t border-dashed border-slate-400" />Your target</span>
             </div>
             <BPChart vitals={bp} patient={patient} days={days} />
-            <div className="mt-3 grid grid-cols-3 gap-2">
+            <div className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(6.5rem,1fr))] gap-2">
               <Stat label="Average" value={`${Math.round(sys.avg)}/${Math.round(dia.avg)}`} unit="mmHg" />
               <Stat label="Highest" value={`${Math.round(sys.max)}`} unit="sys" />
               <Stat label="Above target" value={`${Math.round(bp.filter(v => v.value1 > patient.target_sys_max || Number(v.value2) > patient.target_dia_max).length / bp.length * 100)}`} unit="%" />
@@ -122,15 +122,15 @@ export default function Trends() {
       )}
 
       {hasK('heart_rate') && (
-        <Card title="Heart rate" kind="heart_rate" right={<span className="text-[12.5px] font-semibold text-slate-500">avg {Math.round(hr.avg)} bpm</span>}>
+        <Card title="Heart rate" kind="heart_rate" right={<span className="text-[0.7812rem] font-semibold text-slate-500">avg {Math.round(hr.avg)} bpm</span>}>
           <SimpleLine vitals={inR} kind="heart_rate" color={VITALS.heart_rate.color} unit="bpm" days={days} band={[patient.target_hr_min, patient.target_hr_max]} />
         </Card>
       )}
 
       {hasK('weight') && (
-        <Card title="Weight" kind="weight" right={wt.length > 1 ? <span className="text-[12.5px] font-semibold text-slate-500">{(Number(wt[0].value1) - Number(wt[wt.length - 1].value1) >= 0 ? '+' : '')}{(Number(wt[0].value1) - Number(wt[wt.length - 1].value1)).toFixed(1)} kg</span> : undefined}>
+        <Card title="Weight" kind="weight" right={wt.length > 1 ? <span className="text-[0.7812rem] font-semibold text-slate-500">{(Number(wt[0].value1) - Number(wt[wt.length - 1].value1) >= 0 ? '+' : '')}{(Number(wt[0].value1) - Number(wt[wt.length - 1].value1)).toFixed(1)} kg</span> : undefined}>
           <SimpleLine vitals={inR} kind="weight" color={VITALS.weight.color} unit="kg" days={days} />
-          {patient.condition === 'type2_cardiac' && <p className="mt-2 text-[11.5px] text-slate-400">For heart patients, a sudden gain (about 1 kg in a day or 2 kg in a week) can mean fluid build-up — tell your doctor.</p>}
+          {patient.condition === 'type2_cardiac' && <p className="mt-2 text-[0.7188rem] text-slate-400">For heart patients, a sudden gain (about 1 kg in a day or 2 kg in a week) can mean fluid build-up — tell your doctor.</p>}
         </Card>
       )}
 
@@ -142,9 +142,9 @@ export default function Trends() {
         <Card title="HbA1c (lab)" kind="hba1c">
           <div className="flex gap-2 overflow-x-auto no-scrollbar">
             {a1cs.map(v => (
-              <div key={v.id} className="min-w-[88px] rounded-2xl bg-slate-50 p-3 text-center dark:bg-white/[.03]">
+              <div key={v.id} className="min-w-[5.5rem] rounded-2xl bg-slate-50 p-3 text-center dark:bg-white/[.03]">
                 <div className="font-display text-xl font-bold" style={{ color: v.value1 > 7 ? '#ea580c' : '#059669' }}>{Number(v.value1).toFixed(1)}%</div>
-                <div className="text-[11px] text-slate-400">{format(new Date(v.measured_at), 'MMM yyyy')}</div>
+                <div className="text-[0.6875rem] text-slate-400">{format(new Date(v.measured_at), 'MMM yyyy')}</div>
               </div>
             ))}
           </div>
@@ -153,7 +153,7 @@ export default function Trends() {
 
       <Card title="Medicine adherence" right={<span className="font-display text-lg font-bold" style={{ color: adh.pct >= 90 ? '#059669' : adh.pct >= 75 ? '#d97706' : '#dc2626' }}>{adh.due ? `${adh.pct.toFixed(0)}%` : '—'}</span>}>
         <div className="h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-white/5"><div className="h-full rounded-full bg-brand-500" style={{ width: `${adh.pct}%` }} /></div>
-        <p className="mt-2 text-[12px] text-slate-500">{adh.taken} of {adh.due} doses marked taken in the last {Math.min(days, 90)} days</p>
+        <p className="mt-2 text-[0.75rem] text-slate-500">{adh.taken} of {adh.due} doses marked taken in the last {Math.min(days, 90)} days</p>
       </Card>
 
       <Card title={`Calories · last ${barDays} days`}>

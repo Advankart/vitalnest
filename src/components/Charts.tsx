@@ -127,7 +127,7 @@ export function TIRBar({ tir }: { tir: { veryLow: number; low: number; inRange: 
       <div className="flex h-4 gap-[2px] overflow-hidden rounded-full">
         {segs.filter(s => s.v > 0).map(s => <div key={s.k} title={`${s.k}: ${s.v.toFixed(0)}%`} style={{ width: `${s.v}%`, background: s.c }} className="first:rounded-l-full last:rounded-r-full" />)}
       </div>
-      <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-[12.5px]">
+      <div className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-x-4 gap-y-1.5 text-[0.7812rem]">
         {segs.map(s => (
           <div key={s.k} className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-sm" style={{ background: s.c }} />

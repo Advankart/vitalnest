@@ -36,7 +36,7 @@ export function DeviceNotifications() {
         <div className={cx('grid h-11 w-11 shrink-0 place-items-center rounded-2xl', perm === 'granted' && on ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-500 dark:bg-white/5')}>{perm === 'granted' && on ? <BellRing className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}</div>
         <div className="flex-1">
           <div className="font-bold">Reminders on this {isNative() ? 'phone' : 'browser'}</div>
-          <p className="text-[12.5px] text-slate-500">{isNative() ? 'Alarms ring at the set time even when the app is closed.' : 'In the browser, reminders appear only while VitalNest is open. Install the Android app for alarms that always ring.'}</p>
+          <p className="text-[0.7812rem] text-slate-500">{isNative() ? 'Alarms ring at the set time even when the app is closed.' : 'In the browser, reminders appear only while VitalNest is open. Install the Android app for alarms that always ring.'}</p>
         </div>
       </div>
       {perm !== 'granted' ? (
@@ -52,7 +52,7 @@ export function DeviceNotifications() {
               <div className="label">Remind me for</div>
               <div className="flex flex-wrap gap-2">
                 {patients.map(p => (
-                  <button key={p.id} onClick={() => togglePatient(p.id)} className={cx('flex items-center gap-2 rounded-full py-1 pl-1 pr-3 text-[13px] font-semibold ring-1', ids.includes(p.id) ? 'bg-brand-50 text-brand-800 ring-brand-300 dark:bg-brand-500/10 dark:text-brand-200' : 'text-slate-400 ring-slate-200 dark:ring-white/10')}>
+                  <button key={p.id} onClick={() => togglePatient(p.id)} className={cx('flex items-center gap-2 rounded-full py-1 pl-1 pr-3 text-[0.8125rem] font-semibold ring-1', ids.includes(p.id) ? 'bg-brand-50 text-brand-800 ring-brand-300 dark:bg-brand-500/10 dark:text-brand-200' : 'text-slate-400 ring-slate-200 dark:ring-white/10')}>
                     <Avatar name={p.full_name} color={ids.includes(p.id) ? p.color : '#94a3b8'} size={26} />{p.full_name.split(' ')[0]}
                   </button>
                 ))}
@@ -60,7 +60,7 @@ export function DeviceNotifications() {
             </div>
           )}
           {exact && exact !== 'granted' && (
-            <button onClick={openExactAlarmSetting} className="mt-3 w-full rounded-2xl bg-amber-50 px-4 py-3 text-left text-[12.5px] text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">
+            <button onClick={openExactAlarmSetting} className="mt-3 w-full rounded-2xl bg-amber-50 px-4 py-3 text-left text-[0.7812rem] text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">
               <b>Allow exact alarms</b> so reminders ring on time (Android may delay them otherwise). Tap to open settings.
             </button>
           )}
@@ -91,9 +91,9 @@ export default function Reminders() {
           {!list.length && <div className="p-6 text-center text-sm text-slate-400">No reminders yet</div>}
           {list.map(r => (
             <div key={r.id} className={cx('flex items-center gap-3 px-4 py-3', !r.enabled && 'opacity-50')}>
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 dark:bg-white/5 dark:text-slate-300"><VitalIcon kind={r.kind} className="h-[18px] w-[18px]" /></div>
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 dark:bg-white/5 dark:text-slate-300"><VitalIcon kind={r.kind} className="h-[1.125rem] w-[1.125rem]" /></div>
               <button onClick={() => canEdit && setEdit(r)} className="min-w-0 flex-1 text-left">
-                <div className="font-display text-[17px] font-bold">{to12h(r.time)}</div>
+                <div className="font-display text-[1.0625rem] font-bold">{to12h(r.time)}</div>
                 <div className="truncate text-xs text-slate-500">{r.label} · {r.days.length === 7 ? 'Every day' : r.days.map(d => DAY_SHORT[d]).join(' ')}</div>
               </button>
               <label className="relative inline-flex cursor-pointer items-center">

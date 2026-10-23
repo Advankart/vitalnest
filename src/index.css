@@ -26,9 +26,13 @@
 
 :root {
   color-scheme: light;
+  --vn-scale: 1;
   -webkit-tap-highlight-color: transparent;
 }
 html.dark { color-scheme: dark; }
+/* Text size: the whole layout is in rem, so scaling the root keeps everything aligned.
+   Chrome's own font boosting is switched off (it enlarges some blocks but not others). */
+html { font-size: calc(100% * var(--vn-scale)); -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
 html, body, #root { min-height: 100%; }
 body {
@@ -46,11 +50,11 @@ h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0
          dark:bg-night-2 dark:ring-white/[.06] dark:shadow-none;
 }
 .field {
-  @apply w-full rounded-2xl border-0 bg-slate-100/80 px-4 py-3.5 text-[15px] text-ink outline-none ring-1 ring-transparent transition
+  @apply w-full rounded-2xl border-0 bg-slate-100/80 px-4 py-3.5 text-[0.9375rem] text-ink outline-none ring-1 ring-transparent transition
          placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-brand-500
          dark:bg-night-3 dark:text-slate-100 dark:focus:bg-night-3;
 }
-.label { @apply mb-1.5 block text-[13px] font-medium text-slate-500 dark:text-slate-400; }
+.label { @apply mb-1.5 block text-[0.8125rem] font-medium text-slate-500 dark:text-slate-400; }
 .chip { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold; }
 
 }
@@ -70,6 +74,8 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 input[type="date"], input[type="time"], input[type="datetime-local"] { min-height: 3.25rem; }
 
 .recharts-cartesian-grid line { stroke: rgba(148,163,184,.18); }
-.recharts-text { fill: #94a3b8; font-size: 11px; }
+.recharts-text { fill: #94a3b8; font-size: 0.6875rem; }
 @keyframes wave { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 .dark { --dot-ring: #0e1626; }
+
+html[data-textlg] .nav-label, html[data-textlg] .lg-hide { display: none; }

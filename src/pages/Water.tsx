@@ -40,13 +40,13 @@ export default function Water() {
           </div>
         </div>
         <p className="mt-4 text-sm text-slate-500">{total >= goal ? 'Goal reached today 🎉' : `${Math.ceil((goal - total) / 250)} more glasses to reach your goal`}</p>
-        {patient.condition === 'type2_cardiac' && <p className="mt-1 text-center text-[11.5px] text-slate-400">If your doctor set a fluid limit for your heart, use that as your goal in the health profile.</p>}
+        {patient.condition === 'type2_cardiac' && <p className="mt-1 text-center text-[0.7188rem] text-slate-400">If your doctor set a fluid limit for your heart, use that as your goal in the health profile.</p>}
       </div>
-      <div className="mt-4 grid grid-cols-4 gap-2">
+      <div className="mt-4 grid grid-cols-[repeat(auto-fit,minmax(4.75rem,1fr))] gap-2">
         {[150, 250, 500, 1000].map(ml => (
           <button key={ml} disabled={busy || !canEdit} onClick={() => add(ml)} className="card flex flex-col items-center gap-1 py-4 transition active:scale-95 disabled:opacity-50">
             <GlassWater className="text-sky-500" style={{ width: 16 + ml / 60, height: 16 + ml / 60 }} />
-            <span className="text-[13px] font-bold">{ml >= 1000 ? '1 L' : `${ml} ml`}</span>
+            <span className="text-[0.8125rem] font-bold">{ml >= 1000 ? '1 L' : `${ml} ml`}</span>
           </button>
         ))}
       </div>
@@ -54,7 +54,7 @@ export default function Water() {
         <input className="field" inputMode="numeric" value={custom} onChange={e => setCustom(e.target.value.replace(/\D/g, ''))} placeholder="Custom amount (ml)" />
         <Button onClick={() => add(Number(custom))} disabled={!custom || !canEdit}>Add</Button>
       </div>
-      <section className="card mt-4 p-4"><h2 className="mb-2 text-[15px] font-bold">This week</h2><DailyBars rows={week} color="#0284c7" unit="ml" goal={goal} /></section>
+      <section className="card mt-4 p-4"><h2 className="mb-2 text-[0.9375rem] font-bold">This week</h2><DailyBars rows={week} color="#0284c7" unit="ml" goal={goal} /></section>
       {today.length > 0 && (
         <section className="card mt-4 divide-y divide-slate-100 dark:divide-white/5">
           {today.map(w => (
