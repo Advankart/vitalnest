@@ -64,7 +64,12 @@ jobs:
           chmod +x gradlew
           if [ -n "$ANDROID_KEYSTORE_PATH" ]; then
             ./gradlew assembleRelease --no-daemon
-            cp app/build/outputs/apk/release/app-release.apk ../VitalNest.apk
+            # Re-sign with v1 (JAR) + v2 + v3 so strict OEM installers (OPPO/Realme/Vivo) accept it
+            BT="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
+            "$BT/apksigner" sign --ks "$ANDROID_KEYSTORE_PATH" --ks-key-alias "$ANDROID_KEY_ALIAS" \
+              --ks-pass env:ANDROID_KEYSTORE_PASSWORD --key-pass env:ANDROID_KEY_PASSWORD \
+              --min-sdk-version 21 --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true \
+              --out ../VitalNest.apk app/build/outputs/apk/release/app-release.apk
           else
             ./gradlew assembleDebug --no-daemon
             cp app/build/outputs/apk/debug/app-debug.apk ../VitalNest.apk
@@ -73,8 +78,8 @@ jobs:
       - name: Verify APK signature and Android version support
         run: |
           BT="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
-          "$BT/apksigner" verify --verbose --print-certs VitalNest.apk | head -20
-          "$BT/aapt2" dump badging VitalNest.apk | grep -E "^package|sdkVersion" || true
+          "$BT/apksigner" verify --verbose --min-sdk-version 21 VitalNest.apk | head -12
+          "$BT/aapt2" dump badging VitalNest.apk | grep -iE "^package|sdkVersion" || true
           ls -l VitalNest.apk
 
       - uses: actions/upload-artifact@v4
