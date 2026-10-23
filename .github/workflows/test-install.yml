@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        api-level: [33, 34]
+        api-level: [26, 28, 30, 31, 32, 33]
     steps:
       - name: Enable KVM
         run: |
@@ -20,6 +20,7 @@ jobs:
       - name: Download latest released APK
         run: |
           curl -sSL -o VitalNest.apk https://github.com/${{ github.repository }}/releases/latest/download/VitalNest.apk
+          curl -sSL -o VitalNest-compat.apk https://github.com/${{ github.repository }}/releases/latest/download/VitalNest-compat.apk
           ls -l VitalNest.apk
           file VitalNest.apk
           BT="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
@@ -34,7 +35,9 @@ jobs:
           arch: x86_64
           disable-animations: true
           script: |
-            adb install -r VitalNest.apk
+            adb install -r VitalNest.apk && echo "MAIN APK INSTALLED OK" || echo "MAIN APK INSTALL FAILED"
+            adb uninstall in.advankart.vitalnest || true
+            adb install -r VitalNest-compat.apk && echo "COMPAT APK INSTALLED OK" || echo "COMPAT APK INSTALL FAILED"
             adb shell monkey -p in.advankart.vitalnest -c android.intent.category.LAUNCHER 1
             sleep 15
             adb shell pidof in.advankart.vitalnest && echo "APP IS RUNNING"
