@@ -41,7 +41,7 @@ export function cachedAI<T>(kind: AIKind, pid: string, extra = ''): T | null {
 }
 
 /** Fetch an AI insight (server caches per day for the whole family; we also keep a local copy). */
-export async function getAI<T>(kind: AIKind, pid: string, opts: { refresh?: boolean; extra?: string } = {}): Promise<T> {
+export async function getAI<T>(kind: AIKind, pid: string, opts: { refresh?: boolean; extra?: string; body?: Record<string, unknown> } = {}): Promise<T> {
   const k = keyOf(kind, pid, opts.extra);
   if (!opts.refresh) {
     const m = mem.get(k) ?? (() => { try { const raw = localStorage.getItem(k); return raw ? JSON.parse(raw) : undefined; } catch { return undefined; } })();
@@ -51,7 +51,7 @@ export async function getAI<T>(kind: AIKind, pid: string, opts: { refresh?: bool
   if (!token) throw new Error('AI insights need you to be signed in (not available in demo mode).');
   const r = await fetch(`${API_BASE}/api/ai`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ kind, patient_id: pid, refresh: !!opts.refresh, lang }),
+    body: JSON.stringify({ kind, patient_id: pid, refresh: !!opts.refresh, lang, ...(opts.body ?? {}) }),
   });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(j.error || 'AI is not available right now');

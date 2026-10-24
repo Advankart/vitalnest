@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { t } from '../lib/i18n';
 import { ChevronRight, Flame, Leaf, RefreshCw, Sparkles, Utensils } from 'lucide-react';
 import { useApp } from '../lib/store';
@@ -66,34 +66,49 @@ function MealBlock({ meal, big }: { meal: DietPlan['meals'][number]; big?: boole
 export function DietCard() {
   const { patient, canEdit, refreshPatients, toast } = useApp();
   const pid = patient?.id ?? '';
-  const pref = patient?.diet_pref ?? '';
-  const [plan, setPlan] = useState<DietPlan | null>(() => (pid ? cachedAI<DietPlan>('diet', pid, `_${pref}`) : null));
+  const [pref, setPrefState] = useState<string>(patient?.diet_pref ?? 'veg');
+  useEffect(() => { setPrefState(patient?.diet_pref ?? 'veg'); }, [pid, patient?.diet_pref]);
+  const [plan, setPlan] = useState<DietPlan | null>(() => (pid ? cachedAI<DietPlan>('diet', pid, `_${patient?.diet_pref ?? 'veg'}`) : null));
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [open, setOpen] = useState(false);
   const slot: MealSlot = currentSlot();
+  const reqId = useRef(0);
 
-  async function load(refresh = false) {
+  async function load(p = pref, refresh = false) {
     if (!pid) return;
+    const id = ++reqId.current;
+    const cached = !refresh ? cachedAI<DietPlan>('diet', pid, `_${p}`) : null;
+    if (cached) { setPlan(cached); setErr(''); }       // instant when this menu was already made today
     setBusy(true); setErr('');
-    try { setPlan(await getAI<DietPlan>('diet', pid, { refresh, extra: `_${pref}` })); }
-    catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
+    try {
+      const v = await getAI<DietPlan>('diet', pid, { refresh, extra: `_${p}`, body: { pref: p } });
+      if (id === reqId.current) setPlan(v);
+    } catch (e) { if (id === reqId.current) setErr((e as Error).message); }
+    finally { if (id === reqId.current) setBusy(false); }
   }
-  useEffect(() => { if (pid && api().mode === 'cloud') load(); }, [pid, pref]); // eslint-disable-line
+  useEffect(() => { if (pid && api().mode === 'cloud') load(pref); }, [pid]); // eslint-disable-line
 
-  async function setPref(p: string) {
-    if (!patient || !canEdit) return;
-    try { await api().savePatient({ id: patient.id, diet_pref: p as Patient['diet_pref'] }); await refreshPatients(); } catch (e) { toast((e as Error).message, 'err'); }
+  function setPref(p: string) {
+    if (!patient || !canEdit || p === pref) return;
+    setPrefState(p);                     // switch at once…
+    load(p);                             // …start the new menu immediately…
+    api().savePatient({ id: patient.id, diet_pref: p as Patient['diet_pref'] })   // …and remember the choice in the background
+      .then(() => refreshPatients()).catch(e => toast((e as Error).message, 'err'));
   }
 
   if (!patient || api().mode !== 'cloud') return null;
-  const meal = plan?.meals?.find(m => m.slot === slot) ?? plan?.meals?.[0];
+  const meals = plan?.meals ?? [];
+  const idx = Math.max(0, meals.findIndex(m => m.slot === slot));
+  const meal = meals[idx];
+  const next = meals.slice(idx + 1).find(m => m.slot === 'lunch' || m.slot === 'dinner' || m.slot === 'breakfast');
+  const prefLabel = PREFS.find(x => x.id === pref)?.label ?? '';
 
   return (
     <section className="mt-6">
       <div className="mb-3 flex items-center justify-between px-1">
         <h2 className="text-[1.0625rem] font-bold">Heart-healthy menu</h2>
-        {plan && <button onClick={() => load(true)} disabled={busy} className="flex items-center gap-1 text-[0.8125rem] font-semibold text-brand-600 disabled:opacity-50 dark:text-brand-300"><RefreshCw className={cx('h-3.5 w-3.5', busy && 'animate-spin')} />New ideas</button>}
+        {plan && <button onClick={() => load(pref, true)} disabled={busy} className="flex items-center gap-1 text-[0.8125rem] font-semibold text-brand-600 disabled:opacity-50 dark:text-brand-300"><RefreshCw className={cx('h-3.5 w-3.5', busy && 'animate-spin')} />New ideas</button>}
       </div>
       <div className="card overflow-hidden">
         <div className="flex items-center gap-3 bg-gradient-to-r from-orange-50 to-amber-50 px-4 py-3 dark:from-orange-500/10 dark:to-amber-500/5">
@@ -105,12 +120,20 @@ export function DietCard() {
           {meal && <div className="shrink-0 text-right"><div className="font-display text-lg font-bold leading-none">{Math.round(Number(meal.total_kcal) || 0)}</div><div className="text-[0.6875rem] text-slate-500">kcal</div></div>}
         </div>
         <div className="p-4">
+          {plan && busy && <div className="mb-3 flex items-center gap-2 rounded-xl bg-orange-50 px-3 py-2 text-[0.75rem] font-semibold text-orange-700 dark:bg-orange-500/10 dark:text-orange-300"><RefreshCw className="h-3.5 w-3.5 animate-spin" />{t('Preparing {pref} menu…', { pref: t(prefLabel) })}</div>}
           {!plan && busy && <div className="space-y-2"><div className="h-4 w-2/3 animate-pulse rounded bg-slate-200 dark:bg-white/10" /><div className="h-3 w-full animate-pulse rounded bg-slate-100 dark:bg-white/5" /><div className="h-3 w-5/6 animate-pulse rounded bg-slate-100 dark:bg-white/5" /><div className="pt-1 text-xs text-slate-400">Preparing today's menu…</div></div>}
-          {!plan && !busy && err && <div className="text-[0.8125rem] text-slate-500">{err} <button onClick={() => load()} className="font-semibold text-brand-600">Try again</button></div>}
-          {meal && <MealBlock meal={meal} />}
+          {!plan && !busy && err && <div className="text-[0.8125rem] text-slate-500">{err} <button onClick={() => load(pref)} className="font-semibold text-brand-600">Try again</button></div>}
+          {meal && <div className={cx('transition-opacity', busy && 'opacity-40')}><MealBlock meal={meal} /></div>}
+          {next && !busy && (
+            <button onClick={() => setOpen(true)} className="mt-3 flex w-full items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-left text-[0.8125rem] dark:bg-white/[.03]">
+              <span className="shrink-0 font-semibold text-slate-500">{t(SLOT_LABEL[next.slot])}:</span>
+              <span className="min-w-0 flex-1 truncate">{next.title}</span>
+              <span className="shrink-0 font-semibold text-orange-600 dark:text-orange-300">{Math.round(Number(next.total_kcal) || 0)} kcal</span>
+            </button>
+          )}
           {canEdit && (
             <div className="no-scrollbar -mx-1 mt-3 flex gap-1.5 overflow-x-auto px-1">
-              {PREFS.map(p => <button key={p.id} onClick={() => setPref(p.id)} className={cx('chip shrink-0 py-1.5 text-[0.75rem]', pref === p.id ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-500 dark:bg-white/5')}>{p.label}</button>)}
+              {PREFS.map(p => <button key={p.id} onClick={() => setPref(p.id)} className={cx('chip shrink-0 py-1.5 text-[0.75rem] transition active:scale-95', pref === p.id ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-500 dark:bg-white/5')}>{pref === p.id && busy && <RefreshCw className="h-3 w-3 animate-spin" />}{p.label}</button>)}
             </div>
           )}
         </div>

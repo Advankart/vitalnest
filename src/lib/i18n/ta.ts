@@ -329,4 +329,5 @@ export const TA: Record<string, string> = {
   'Downloading update… {n}%': 'புதுப்பிப்பு பதிவிறக்குகிறது… {n}%', 'Tap Install on the next screen': 'அடுத்த திரையில் "Install" தட்டுங்கள்',
   'Allow "Install unknown apps" for VitalNest, come back and tap Update again.': 'VitalNest-க்கு "Install unknown apps" அனுமதியுங்கள், பிறகு திரும்பி வந்து மீண்டும் "புதுப்பி" தட்டுங்கள்.',
   'Update failed — please try again': 'புதுப்பிப்பு தோல்வி — மீண்டும் முயற்சி செய்யுங்கள்',
+  'Preparing {pref} menu…': '{pref} உணவுப் பட்டியல் தயாராகிறது…',
 };

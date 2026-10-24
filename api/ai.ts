@@ -99,6 +99,14 @@ const TAMIL = `
 LANGUAGE: Write every text field in Tamil (தமிழ்) — simple, warm, everyday spoken-style Tamil that an elderly person in Tamil Nadu understands, in Tamil script.
 Keep numbers as digits and keep units/abbreviations as they are (mg/dL, BP, mmHg, kcal, HbA1c). For food items write the common Tamil name (e.g. இட்லி, ராகி தோசை, சுண்டல், காய்கறி கூட்டு); quantities like "2 இட்லி", "1 கிண்ணம் (150 கி)". Enum fields (tone, slot, area, overall) stay in English exactly as defined.`;
 
+const DIET_RULE: Record<string, string> = {
+  veg: 'VEGETARIAN — no egg, meat, chicken or fish in any meal. Use dal, paneer, curd, sprouts, soya, tofu for protein.',
+  egg: 'VEGETARIAN + EGG — no meat or fish. Include eggs (boiled, omelette, bhurji with little oil) at breakfast and in at least one more meal.',
+  nonveg: 'NON-VEGETARIAN — include chicken, fish or egg in breakfast, lunch AND dinner (e.g. egg at breakfast, grilled/curry chicken or fish at lunch and dinner, cooked with little oil; no deep-fried). Prefer fish and chicken; red meat at most once a week. Snacks can be veg.',
+  jain: 'JAIN — strictly vegetarian, no egg, no onion, garlic, potato, carrot, beetroot or other root vegetables.',
+  'not set': 'VEGETARIAN (optional egg at breakfast).',
+};
+
 const TOOLS = {
   motivation: {
     description: 'A short motivating message for the home screen.',
@@ -161,7 +169,7 @@ const TOOLS = {
     },
     task: (s: any, extra: string) => `Create today's meal plan (breakfast, mid_morning, lunch, evening_snack, dinner) for ${s.person.first_name}.
 Make it Indian home food that is heart-healthy (low salt, little oil, no deep-fried food, more fibre, nuts/seeds in moderation) and diabetes-friendly (low glycaemic index, millets/whole grains, dal/protein in every meal, controlled rice/roti portions, no sugar).
-Respect diet preference "${s.person.diet_pref}" (if not set, keep it vegetarian with optional egg) and avoid any allergies. Total should be close to ${s.person.daily_kcal_goal} kcal. Give realistic calories per item (Indian food composition). If recent after-meal sugar is high, lower carbs further.
+Diet preference: ${DIET_RULE[s.person.diet_pref] ?? DIET_RULE.veg} Avoid any allergies. Total should be close to ${s.person.daily_kcal_goal} kcal. Give realistic calories per item (Indian food composition). If recent after-meal sugar is high, lower carbs further.
 ${extra}
 DATA:\n${JSON.stringify(s)}`,
     maxTokens: 2200,
@@ -188,12 +196,15 @@ export default async function handler(req: any, res: any) {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
     const kind = body.kind as Kind, pid = String(body.patient_id || '');
     const lang = body.lang === 'ta' ? 'ta' : 'en';
-    const ckind = lang === 'ta' ? `${kind}_ta` : kind;   // cache key per language
+    const pref = ['veg', 'egg', 'nonveg', 'jain'].includes(body.pref) ? body.pref : null;
+    // cache key per language (and per food preference for the menu, so switching back is instant and free)
+    const ckind = (kind === 'diet' ? `diet_${pref ?? 'default'}` : kind) + (lang === 'ta' ? '_ta' : '');
     if (!TOOLS[kind] || !/^[0-9a-f-]{36}$/i.test(pid)) return res.status(400).json({ error: 'Bad request' });
 
     // access check: the person must be visible to this user (row-level security)
     const [p] = await asUser<any[]>(req.headers.authorization, `/rest/v1/patients?id=eq.${pid}&select=*`);
     if (!p) return res.status(403).json({ error: 'No access to this person' });
+    if (kind === 'diet' && pref) p.diet_pref = pref;
 
     const since = new Date(Date.now() - 95 * DAY).toISOString();
     const [vitals, meds, logs, meals] = await Promise.all([
@@ -206,7 +217,7 @@ export default async function handler(req: any, res: any) {
     const day = localDay();
     const today = localDay();
     const takenToday = logs.filter(l => l.scheduled_date === today && l.status === 'taken').length;
-    const sig = kind === 'motivation' ? `${vitals[0]?.id ?? ''}|${takenToday}` : kind === 'trends' ? `${vitals.length}|${vitals[0]?.id ?? ''}` : `${p.diet_pref ?? ''}|${p.daily_kcal_goal}`;
+    const sig = kind === 'motivation' ? `${vitals[0]?.id ?? ''}|${takenToday}` : kind === 'trends' ? `${vitals.length}|${vitals[0]?.id ?? ''}` : `${p.daily_kcal_goal}`;
 
     const [cached] = await sb<any[]>(`/rest/v1/ai_cache?patient_id=eq.${pid}&kind=eq.${ckind}&day=eq.${day}&select=content,sig,created_at`);
     const age = cached ? Date.now() - +new Date(cached.created_at) : Infinity;
