@@ -103,7 +103,7 @@ export default function Layout() {
   return (
     <div className="mx-auto min-h-screen max-w-xl">
       {isHome && (
-        <header className="safe-top sticky top-0 z-30 bg-canvas/85 backdrop-blur-xl dark:bg-night/85">
+        <header className="safe-top sticky top-0 z-30 bg-canvas shadow-[0_1px_0_rgba(15,23,42,.06)] dark:bg-night dark:shadow-[0_1px_0_rgba(255,255,255,.05)]">
           <div className="flex items-center justify-between px-4 py-2.5">
             <PatientSwitcher />
             <button onClick={() => nav('/reminders')} aria-label="Reminders" className="grid h-10 w-10 place-items-center rounded-full bg-white text-slate-600 shadow-sm ring-1 ring-slate-900/5 dark:bg-night-2 dark:text-slate-300 dark:ring-white/5">
@@ -128,9 +128,9 @@ export default function Layout() {
         </div>
       )}
 
-      <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40">
+      <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 bg-canvas pt-2 shadow-[0_-1px_0_rgba(15,23,42,.06)] dark:bg-night dark:shadow-[0_-1px_0_rgba(255,255,255,.05)]">
         <div className="mx-auto max-w-xl px-3 pb-2">
-          <div className="relative flex items-center rounded-[26px] bg-white/90 px-2 shadow-[0_10px_40px_-12px_rgba(15,23,42,.25)] ring-1 ring-slate-900/5 backdrop-blur-xl dark:bg-night-2/90 dark:ring-white/10">
+          <div className="relative flex items-center rounded-[26px] bg-white px-2 shadow-[0_6px_24px_-12px_rgba(15,23,42,.25)] ring-1 ring-slate-900/5 dark:bg-night-2 dark:ring-white/10">
             <Tab to="/" icon={<Home className="h-[1.375rem] w-[1.375rem]" />} label="Home" />
             <Tab to="/trends" icon={<Activity className="h-[1.375rem] w-[1.375rem]" />} label="Trends" />
             <div className="flex flex-1 justify-center">

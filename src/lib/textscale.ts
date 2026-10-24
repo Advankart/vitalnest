@@ -8,7 +8,7 @@ export const TEXT_SIZES: { id: TextSize; label: string }[] = [
   { id: '1.15', label: 'Large' }, { id: '1.3', label: 'Larger' }, { id: '1.5', label: 'Largest' },
 ];
 const KEY = 'vn_text_size';
-const FontScale = registerPlugin<{ get(): Promise<{ scale: number }> }>('FontScale');
+export const FontScale = registerPlugin<{ get(): Promise<{ scale: number }>; setBars(o: { color: string; dark: boolean }): Promise<void> }>('FontScale');
 let phoneScale = 1;
 
 export function getTextSize(): TextSize { try { return (localStorage.getItem(KEY) as TextSize) || 'auto'; } catch { return 'auto'; } }

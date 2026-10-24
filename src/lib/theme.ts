@@ -1,5 +1,6 @@
-import { Capacitor } from '@capacitor/core';
-import { StatusBar, Style } from '@capacitor/status-bar';
+import { Capacitor, SystemBars, SystemBarsStyle } from '@capacitor/core';
+import { FontScale as Bars } from './textscale';
+import { StatusBar } from '@capacitor/status-bar';
 
 export type Theme = 'system' | 'light' | 'dark';
 const KEY = 'vn_theme';
@@ -11,9 +12,12 @@ export function applyTheme() {
   const bg = dark ? '#070c17' : '#f4f6fa';
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg);
   if (Capacitor.isNativePlatform()) {
-    StatusBar.setOverlaysWebView({ overlay: false }).catch(() => { });
-    StatusBar.setStyle({ style: dark ? Style.Dark : Style.Light }).catch(() => { });
-    StatusBar.setBackgroundColor({ color: bg }).catch(() => { });
+    // Status/navigation bars: solid app colour with matching icons (the app no longer draws under them)
+    Bars.setBars({ color: bg, dark }).catch(() => {
+      // older app versions: best effort with the standard plugins
+      SystemBars.setStyle({ style: dark ? SystemBarsStyle.Dark : SystemBarsStyle.Light }).catch(() => { });
+      StatusBar.setBackgroundColor({ color: bg }).catch(() => { });
+    });
   }
 }
 export function setTheme(t: Theme) { try { localStorage.setItem(KEY, t); } catch { /* ignore */ } applyTheme(); }

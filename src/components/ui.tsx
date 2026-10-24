@@ -66,7 +66,7 @@ export function ChipSelect<T extends string>({ value, onChange, options }: { val
 export function PageHeader({ title, subtitle, back = true, right }: { title: string; subtitle?: string; back?: boolean; right?: ReactNode }) {
   const nav = useNavigate();
   return (
-    <div className="mb-4 flex items-center gap-2">
+    <div className="sticky top-0 z-20 -mx-4 mb-4 flex items-center gap-2 bg-canvas px-4 py-2 dark:bg-night">
       {back && (
         <button onClick={() => (window.history.length > 1 ? nav(-1) : nav('/'))} aria-label="Back"
           className="-ml-2 grid h-10 w-10 place-items-center rounded-full text-slate-600 hover:bg-slate-200/60 dark:text-slate-300 dark:hover:bg-white/5">
