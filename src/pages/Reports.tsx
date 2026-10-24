@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { t } from '../lib/i18n';
 import { useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Camera, ChevronLeft, ChevronRight, ExternalLink, FileImage, FileText, Trash2, Upload, X } from 'lucide-react';
+import { Sparkles, Camera, ChevronLeft, ChevronRight, ExternalLink, FileImage, FileText, Trash2, Upload, X } from 'lucide-react';
 import { toJpegBlob } from '../lib/scan';
+import { ReportSummaryView } from '../components/ReportSummaryView';
+import { savedSummary } from '../lib/reportSummary';
 import { Browser } from '@capacitor/browser';
 import { useApp } from '../lib/store';
 import { api } from '../lib/api';
@@ -19,20 +21,19 @@ export default function Reports() {
   const [list, setList] = useState<Report[] | null>(null);
   const [filter, setFilter] = useState('all');
   const [open, setOpen] = useState(sp.get('upload') === '1');
-  const [view, setView] = useState<{ r: Report; url: string } | null>(null);
+  const [view, setView] = useState<{ r: Report; url: string | null } | null>(null);
 
   const load = () => patient && api().list<Report>('reports', [patient.id], undefined, 'created_at').then(setList).catch(e => toast(e.message, 'err'));
   useEffect(() => { load(); }, [patient?.id]); // eslint-disable-line
   if (!patient) return null;
 
   async function openReport(r: Report) {
-    try {
-      const url = await api().reportUrl(r);
-      if (r.mime_type?.startsWith('image/')) setView({ r, url });
-      else if (isNative()) await Browser.open({ url });
-      else window.open(url, '_blank', 'noopener');
-    } catch (e) { toast((e as Error).message, 'err'); }
+    setView({ r, url: null });
+    try { const url = await api().reportUrl(r); setView(v => (v && v.r.id === r.id ? { ...v, url } : v)); }
+    catch (e) { toast((e as Error).message, 'err'); }
   }
+  const openOriginal = (url: string | null) => { if (!url) return; if (isNative()) Browser.open({ url }); else window.open(url, '_blank', 'noopener'); };
+  const savedR = (r: Report) => { setList(l => l?.map(x => (x.id === r.id ? r : x)) ?? l); setView(v => (v ? { ...v, r } : v)); };
   async function del(r: Report) {
     if (!confirm(t('Delete "{name}"?', { name: r.title }))) return;
     try { await api().deleteReport(r); setView(null); load(); } catch (e) { toast((e as Error).message, 'err'); }
@@ -57,6 +58,7 @@ export default function Reports() {
                 <div className="truncate font-semibold">{r.title}</div>
                 <div className="truncate text-xs text-slate-500">{CATS.find(c => c.id === r.category)?.label} · {r.report_date ? format(new Date(r.report_date), 'd MMM yyyy') : ''}{r.size_bytes ? ` · ${(r.size_bytes / 1024 / 1024).toFixed(1)} MB` : ''}</div>
                 {r.notes && <div className="truncate text-xs text-slate-400">{r.notes}</div>}
+                {savedSummary(r) && <div className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5 text-[0.6875rem] font-semibold text-violet-700 dark:bg-violet-500/10 dark:text-violet-300"><Sparkles className="h-3 w-3" />AI summary ready</div>}
               </div>
               <ExternalLink className="h-4 w-4 text-slate-300" />
             </button>
@@ -67,13 +69,14 @@ export default function Reports() {
         <UploadForm onDone={() => { setOpen(false); setSp({}); load(); }} />
       </Sheet>
       <Sheet open={!!view} onClose={() => setView(null)} title={view?.r.title}>
-        {view && <>
-          <img src={view.url} alt={view.r.title} className="w-full rounded-2xl" />
-          <div className="mt-3 flex gap-2">
-            <Button variant="soft" className="flex-1" onClick={() => isNative() ? Browser.open({ url: view.url }) : window.open(view.url, '_blank')}><ExternalLink className="h-4 w-4" />Open full size</Button>
+        {view && <div className="space-y-4">
+          <ReportSummaryView key={view.r.id} report={view.r} onSaved={savedR} />
+          {view.r.mime_type?.startsWith('image/') && view.url && <img src={view.url} alt={view.r.title} className="w-full rounded-2xl" />}
+          <div className="flex gap-2">
+            <Button variant="soft" className="flex-1" disabled={!view.url} onClick={() => openOriginal(view.url)}><ExternalLink className="h-4 w-4" />{view.r.mime_type?.startsWith('image/') ? 'Open full size' : 'Open original report'}</Button>
             {canEdit && <Button variant="danger" onClick={() => del(view.r)}><Trash2 className="h-4 w-4" /></Button>}
           </div>
-        </>}
+        </div>}
       </Sheet>
     </div>
   );
@@ -137,7 +140,9 @@ function UploadForm({ onDone }: { onDone: () => void }) {
         setBusy(t('Uploading…'));
         await api().uploadReport(patient!.id, pdf, { ...meta, notes: [notes, t('{n} pages', { n: imgs.length })].filter(Boolean).join(' · ') });
       } else if (imgs.length === 1) {
-        await api().uploadReport(patient!.id, imgs[0], meta);
+        const f = imgs[0];
+        const small = f.size > 1.5 * 1024 * 1024 ? new File([await toJpegBlob(f, 2400)], f.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' }) : f;
+        await api().uploadReport(patient!.id, small, meta);
       }
       for (const [i, f] of others.entries()) {
         await api().uploadReport(patient!.id, f, others.length > 1 || imgs.length ? { ...meta, title: `${meta.title} (${i + 1 + (imgs.length ? 1 : 0)})` } : meta);

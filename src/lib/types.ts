@@ -127,7 +127,22 @@ export interface Report {
   mime_type?: string | null;
   size_bytes?: number | null;
   notes?: string | null;
+  /** AI summary per language, made once and reused */
+  ai_summary?: Partial<Record<'en' | 'ta', ReportSummary>> | null;
   created_at?: string;
+}
+
+export interface ReportSummary {
+  readable: boolean;
+  doc_type: 'discharge_summary' | 'lab_report' | 'prescription' | 'scan_report' | 'consultation' | 'other';
+  title: string; hospital?: string | null; doctor?: string | null; date?: string | null; summary: string;
+  diagnoses: string[];
+  key_findings: { label: string; detail: string; flag: 'normal' | 'attention' | 'critical' }[];
+  lab_results: { test: string; value: string; unit?: string | null; range?: string | null; flag: 'low' | 'normal' | 'high' | 'critical' | 'unknown' }[];
+  procedures: string[];
+  medicines: { name: string; dose?: string | null; timing?: string | null; duration?: string | null; purpose?: string | null }[];
+  follow_up: string[]; advice: string[]; warning_signs: string[];
+  model?: string; at?: string; lang?: string;
 }
 
 export interface CustomFood { id: string; family_id: string; name: string; unit: string; kcal: number; carbs: number; protein: number }

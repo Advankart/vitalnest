@@ -317,4 +317,13 @@ export const TA: Record<string, string> = {
   'Preparing page {n} of {m}…': '{m}-இல் {n} பக்கம் தயாராகிறது…', 'Uploading…': 'பதிவேற்றுகிறது…', '{n} pages': '{n} பக்கங்கள்', '{n} page': '{n} பக்கம்',
   'Take another photo': 'இன்னொரு படம் எடு', 'Add more files': 'மேலும் கோப்புகள் சேர்', 'Choose files / PDF': 'கோப்புகள் / PDF தேர்ந்தெடு',
   'Photos are joined into one PDF': 'படங்கள் ஒரே PDF-ஆக இணைக்கப்படும்', 'Move earlier': 'முன்னே நகர்த்து', 'Move later': 'பின்னே நகர்த்து',
+  'AI summary': 'AI சுருக்கம்', 'AI summary ready': 'AI சுருக்கம் தயார்', 'Create AI summary': 'AI சுருக்கம் உருவாக்கு', 'Reading report… (up to a minute)': 'அறிக்கையைப் படிக்கிறது… (ஒரு நிமிடம் வரை)',
+  'VitalNest reads this report and shows the diagnosis, important values, medicines and follow-up in a clean, simple view. Done once and saved for the family.': 'VitalNest இந்த அறிக்கையைப் படித்து நோயறிதல், முக்கிய அளவுகள், மருந்துகள், அடுத்த பரிசோதனைகளை எளிய முறையில் காட்டும். ஒருமுறை செய்து குடும்பத்திற்காகச் சேமிக்கப்படும்.',
+  "This doesn't look like a readable medical report. Try clearer photos.": 'இது படிக்கக்கூடிய மருத்துவ அறிக்கையாகத் தெரியவில்லை. தெளிவான படங்களை முயற்சி செய்யுங்கள்.',
+  'Read the report again with AI? This uses a little AI credit.': 'AI மூலம் அறிக்கையை மீண்டும் படிக்கவா? இதற்குச் சிறிது AI கட்டணம் ஆகும்.',
+  'Diagnosis': 'நோயறிதல்', 'Important findings': 'முக்கியக் கண்டுபிடிப்புகள்', 'Lab values': 'ஆய்வக அளவுகள்', 'Abnormal lab values': 'இயல்பற்ற ஆய்வக அளவுகள்', 'Procedures done': 'செய்யப்பட்ட சிகிச்சைகள்',
+  'Follow-up': 'அடுத்த பரிசோதனை', 'Care & diet advice': 'பராமரிப்பு & உணவு ஆலோசனை', 'Go to hospital immediately if': 'இவை இருந்தால் உடனே மருத்துவமனைக்குச் செல்லுங்கள்',
+  'Share summary': 'சுருக்கத்தைப் பகிர்', 'Always check the original report and follow your doctor.': 'எப்போதும் அசல் அறிக்கையைச் சரிபார்த்து மருத்துவரைப் பின்பற்றுங்கள்.',
+  'AI summary · VitalNest — check with your doctor': 'AI சுருக்கம் · VitalNest — மருத்துவரிடம் சரிபாருங்கள்', 'Open original report': 'அசல் அறிக்கையைத் திற', 'Doctor visit': 'மருத்துவர் சந்திப்பு',
+  'Critical': 'அபாயம்',
 };
