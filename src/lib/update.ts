@@ -6,7 +6,7 @@ import { App as CapApp } from '@capacitor/app';
  * Only when the Android shell itself changes (new permission / plugin) do phones need a new APK:
  * raise this to that build's number (the N in "VitalNest 1.0.N") and older apps show an "Update app" banner.
  */
-export const REQUIRED_NATIVE_BUILD = 37;
+export const REQUIRED_NATIVE_BUILD = 38;
 export const APK_URL = 'https://vitalnest.vercel.app/download';
 
 export async function nativeBuild(): Promise<number | null> {
