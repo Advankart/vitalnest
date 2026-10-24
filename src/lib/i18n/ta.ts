@@ -310,4 +310,6 @@ export const TA: Record<string, string> = {
   'Manages the family · edits own & unlinked profiles': 'குடும்பத்தை நிர்வகிக்கும் · தன் & இணைக்கப்படாத சுயவிவரங்களை மாற்றலாம்',
   'Recent {what}': 'சமீபத்திய {what}', 'sys': 'சிஸ்.', 'dia': 'டய.',
   'Lab': 'ஆய்வகம்', 'Scan': 'ஸ்கேன்', 'Discharge': 'டிஸ்சார்ஜ்',
+  'Something went wrong on this screen': 'இந்தத் திரையில் ஏதோ தவறு நடந்தது', 'Your data is safe. Go back or reload the app.': 'உங்கள் தரவு பாதுகாப்பாக உள்ளது. பின்செல்லுங்கள் அல்லது செயலியை மீண்டும் திறங்கள்.',
+  'Reload': 'மீண்டும் ஏற்று', 'AI answer was incomplete — please try again.': 'AI பதில் முழுமையாக வரவில்லை — மீண்டும் முயற்சி செய்யுங்கள்.',
 };

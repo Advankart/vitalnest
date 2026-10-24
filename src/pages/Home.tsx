@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { t as tr, tDose } from '../lib/i18n';
 import { Link, useNavigate } from 'react-router-dom';
 import { formatDistanceToNowStrict, format, isToday } from 'date-fns';
@@ -116,7 +117,7 @@ export default function Home() {
         </div>
       </div>
 
-      <MotivationCard latestId={data.vitals[0]?.id} />
+      <ErrorBoundary fallback={null}><MotivationCard latestId={data.vitals[0]?.id} /></ErrorBoundary>
 
       {/* Alerts */}
       {critical.slice(0, 2).map(v => {
@@ -214,7 +215,7 @@ export default function Home() {
         )}
       </Section>
 
-      <DietCard />
+      <ErrorBoundary fallback={null}><DietCard /></ErrorBoundary>
 
       {/* Upcoming */}
       {nextReminders.length > 0 && (

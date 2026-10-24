@@ -57,7 +57,7 @@ export function TrendsAI() {
             </div>
             {a.highlights?.length > 0 && (
               <div className="space-y-2.5">
-                {a.highlights.map((h, i) => {
+                {(a.highlights ?? []).map((h, i) => {
                   const t = TONE[h.tone] ?? TONE.watch; const Icon = t.icon;
                   return (
                     <div key={i} className="flex gap-2.5">
@@ -71,13 +71,13 @@ export function TrendsAI() {
             {a.patterns?.length > 0 && (
               <div className="rounded-2xl bg-slate-50 p-3 text-[0.8125rem] dark:bg-white/[.03]">
                 <div className="mb-1 font-semibold">Patterns noticed</div>
-                <ul className="list-disc space-y-0.5 pl-4 text-slate-600 dark:text-slate-300">{a.patterns.map((p, i) => <li key={i}>{p}</li>)}</ul>
+                <ul className="list-disc space-y-0.5 pl-4 text-slate-600 dark:text-slate-300">{(a.patterns ?? []).map((p, i) => <li key={i}>{p}</li>)}</ul>
               </div>
             )}
             {a.suggestions?.length > 0 && (
               <div>
                 <div className="mb-1.5 flex items-center gap-1.5 text-[0.875rem] font-semibold"><Lightbulb className="h-4 w-4 text-amber-500" />Try this</div>
-                <ul className="space-y-1.5 text-[0.8438rem]">{a.suggestions.map((s, i) => <li key={i} className="flex gap-2"><span className="mt-[0.45rem] h-1.5 w-1.5 shrink-0 rounded-full bg-brand-500" />{s}</li>)}</ul>
+                <ul className="space-y-1.5 text-[0.8438rem]">{(a.suggestions ?? []).map((s, i) => <li key={i} className="flex gap-2"><span className="mt-[0.45rem] h-1.5 w-1.5 shrink-0 rounded-full bg-brand-500" />{s}</li>)}</ul>
               </div>
             )}
             {a.doctor_note && (

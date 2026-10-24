@@ -6,6 +6,8 @@ import { callClaude } from './_claude.js';
 export const config = { maxDuration: 60 };
 
 const TEXT_MODELS = [process.env.ANTHROPIC_TEXT_MODEL, 'claude-sonnet-4-5', 'claude-haiku-4-5'] as string[];
+// The menu is long (especially in Tamil), so use the fast model to stay inside the 60-second limit.
+const FAST_MODELS = ['claude-haiku-4-5', 'claude-sonnet-4-5'];
 const TZ = 'Asia/Kolkata';
 const localDay = (d = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
 const localHour = () => Number(new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', hour12: false }).format(new Date()));
@@ -168,6 +170,14 @@ DATA:\n${JSON.stringify(s)}`,
 
 type Kind = keyof typeof TOOLS;
 
+/** An AI answer is only used (and cached) when it has everything the app needs to show it. */
+function valid(kind: Kind, o: any): boolean {
+  if (!o || typeof o !== 'object') return false;
+  if (kind === 'motivation') return typeof o.headline === 'string' && typeof o.message === 'string';
+  if (kind === 'trends') return typeof o.summary === 'string' && Array.isArray(o.highlights);
+  return Array.isArray(o.meals) && o.meals.length > 0 && o.meals.every((m: any) => m && typeof m.slot === 'string' && Array.isArray(m.items));
+}
+
 export default async function handler(req: any, res: any) {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(204).end();
@@ -205,7 +215,7 @@ export default async function handler(req: any, res: any) {
         : body.refresh ? age < 2 * 60_000
           : kind === 'diet' ? cached.sig === sig : true
     );
-    if (fresh) return res.status(200).json({ ...cached.content, cached: true, generated_at: cached.created_at });
+    if (fresh && valid(kind, cached.content)) return res.status(200).json({ ...cached.content, cached: true, generated_at: cached.created_at });
 
     const summary = summarise(p, vitals, meds, logs, meals);
     let extra = '';
@@ -215,10 +225,17 @@ export default async function handler(req: any, res: any) {
       extra = `Today is ${new Intl.DateTimeFormat('en-IN', { timeZone: TZ, weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())}.${titles ? ` Do not repeat these dishes from yesterday: ${titles}.` : ''}${body.refresh ? ' Give a different menu from before.' : ''}`;
     }
     const t = TOOLS[kind];
-    const { model, out } = await callClaude({
-      models: TEXT_MODELS, system: SYSTEM + (lang === 'ta' ? TAMIL : ''), tool: t, maxTokens: t.maxTokens, temperature: kind === 'trends' ? 0.2 : 0.7,
-      content: [{ type: 'text', text: (t.task as any)(summary, extra) + (kind === 'motivation' ? `\nLocal hour now: ${localHour()}.` : '') }],
-    });
+    // Tamil script uses ~3x more tokens than English, so allow much longer answers; retry once if cut short.
+    let model = '', out: any = null;
+    for (let attempt = 0; attempt < 2 && !valid(kind, out); attempt++) {
+      const r = await callClaude({
+        models: kind === 'diet' ? FAST_MODELS : TEXT_MODELS, system: SYSTEM + (lang === 'ta' ? TAMIL : ''), tool: t,
+        maxTokens: Math.round(t.maxTokens * (lang === 'ta' ? 3.5 : 1.5) * (attempt + 1)), temperature: kind === 'trends' ? 0.2 : 0.7,
+        content: [{ type: 'text', text: (t.task as any)(summary, extra) + (kind === 'motivation' ? `\nLocal hour now: ${localHour()}.` : '') + (kind === 'diet' ? '\nKeep each "why" under 15 words and give 2–4 items per meal.' : '') }],
+      });
+      model = r.model; out = r.out;
+    }
+    if (!valid(kind, out)) return res.status(502).json({ error: 'AI answer was incomplete — please try again.' });
     const content = { ...out, model };
     await sb('/rest/v1/ai_cache?on_conflict=patient_id,kind,day', {
       method: 'POST', headers: { Prefer: 'resolution=merge-duplicates' },

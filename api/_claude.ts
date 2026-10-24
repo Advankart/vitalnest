@@ -22,7 +22,7 @@ export async function callClaude(opts: { models: string[]; tool: ToolDef; conten
     if (r.ok) {
       const out = (j.content || []).find((c: any) => c.type === 'tool_use')?.input;
       if (!out) throw Object.assign(new Error('AI returned no answer'), { status: 502 });
-      return { model, out };
+      return { model, out, truncated: j.stop_reason === 'max_tokens' };
     }
     lastErr = j?.error?.message || `HTTP ${r.status}`;
     if (!(r.status === 404 || r.status === 529 || r.status === 503 || /model|overloaded/i.test(lastErr))) break;

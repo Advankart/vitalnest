@@ -47,16 +47,16 @@ function MealBlock({ meal, big }: { meal: DietPlan['meals'][number]; big?: boole
     <div>
       <div className={cx('font-semibold', big ? 'text-[1rem]' : 'text-[0.9062rem]')}>{meal.title}</div>
       <div className="mt-2 divide-y divide-slate-100 dark:divide-white/5">
-        {meal.items.map((it, i) => (
+        {(meal.items ?? []).map((it, i) => (
           <div key={i} className="flex items-baseline gap-2 py-1.5 text-[0.8438rem]">
             <span className="min-w-0 flex-1 break-words">{it.name} <span className="text-slate-400">· {it.qty}</span></span>
-            <span className="shrink-0 font-semibold tabular-nums text-orange-600 dark:text-orange-300">{Math.round(it.kcal)} kcal</span>
+            <span className="shrink-0 font-semibold tabular-nums text-orange-600 dark:text-orange-300">{Math.round(Number(it.kcal) || 0)} kcal</span>
           </div>
         ))}
       </div>
       <div className="mt-1 flex items-center justify-between text-[0.75rem]">
         <span className="min-w-0 flex-1 pr-2 text-slate-500"><Leaf className="mr-1 inline h-3 w-3 text-emerald-500" />{meal.why}</span>
-        <span className="shrink-0 font-bold">{Math.round(meal.total_kcal)} kcal</span>
+        <span className="shrink-0 font-bold">{Math.round(Number(meal.total_kcal) || 0)} kcal</span>
       </div>
     </div>
   );
@@ -87,7 +87,7 @@ export function DietCard() {
   }
 
   if (!patient || api().mode !== 'cloud') return null;
-  const meal = plan?.meals.find(m => m.slot === slot) ?? plan?.meals[0];
+  const meal = plan?.meals?.find(m => m.slot === slot) ?? plan?.meals?.[0];
 
   return (
     <section className="mt-6">
@@ -102,7 +102,7 @@ export function DietCard() {
             <div className="text-[0.75rem] font-semibold uppercase tracking-wide text-orange-700 dark:text-orange-300">{t('Recommended for your ' + SLOT_LABEL[meal?.slot ?? slot].toLowerCase())}</div>
             <div className="text-[0.75rem] text-slate-500">Diabetes &amp; heart friendly · AI suggestion</div>
           </div>
-          {meal && <div className="shrink-0 text-right"><div className="font-display text-lg font-bold leading-none">{Math.round(meal.total_kcal)}</div><div className="text-[0.6875rem] text-slate-500">kcal</div></div>}
+          {meal && <div className="shrink-0 text-right"><div className="font-display text-lg font-bold leading-none">{Math.round(Number(meal.total_kcal) || 0)}</div><div className="text-[0.6875rem] text-slate-500">kcal</div></div>}
         </div>
         <div className="p-4">
           {!plan && busy && <div className="space-y-2"><div className="h-4 w-2/3 animate-pulse rounded bg-slate-200 dark:bg-white/10" /><div className="h-3 w-full animate-pulse rounded bg-slate-100 dark:bg-white/5" /><div className="h-3 w-5/6 animate-pulse rounded bg-slate-100 dark:bg-white/5" /><div className="pt-1 text-xs text-slate-400">Preparing today's menu…</div></div>}
@@ -116,20 +116,20 @@ export function DietCard() {
         </div>
         {plan && (
           <button onClick={() => setOpen(true)} className="flex w-full items-center gap-2 border-t border-slate-100 px-4 py-3 text-[0.8438rem] font-semibold text-brand-700 dark:border-white/5 dark:text-brand-300">
-            <Flame className="h-4 w-4 text-orange-500" />{t('Full day menu · {n} kcal', { n: Math.round(plan.day_total_kcal) })}<ChevronRight className="ml-auto h-4 w-4" />
+            <Flame className="h-4 w-4 text-orange-500" />{t('Full day menu · {n} kcal', { n: Math.round(Number(plan.day_total_kcal) || 0) })}<ChevronRight className="ml-auto h-4 w-4" />
           </button>
         )}
       </div>
       <Sheet open={open} onClose={() => setOpen(false)} title="Today's heart-healthy menu">
         {plan && (
           <div className="space-y-5">
-            {plan.meals.map(m => (
+            {(plan.meals ?? []).map(m => (
               <div key={m.slot} className={cx('rounded-2xl p-3 ring-1', m.slot === slot ? 'bg-orange-50/60 ring-orange-200 dark:bg-orange-500/5 dark:ring-orange-500/20' : 'ring-slate-100 dark:ring-white/5')}>
                 <div className="mb-1 flex items-center justify-between text-[0.75rem] font-bold uppercase tracking-wide text-slate-500"><span>{SLOT_LABEL[m.slot]}</span>{m.slot === slot && <span className="text-orange-600">Now</span>}</div>
                 <MealBlock meal={m} big />
               </div>
             ))}
-            <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 dark:bg-white/[.03]"><span className="font-semibold">Day total</span><span className="font-display text-lg font-bold">{Math.round(plan.day_total_kcal)} kcal</span></div>
+            <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 dark:bg-white/[.03]"><span className="font-semibold">Day total</span><span className="font-display text-lg font-bold">{Math.round(Number(plan.day_total_kcal) || 0)} kcal</span></div>
             {plan.tips?.length > 0 && <ul className="space-y-1.5 text-[0.8438rem] text-slate-600 dark:text-slate-300">{plan.tips.map((t, i) => <li key={i} className="flex gap-2"><Leaf className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />{t}</li>)}</ul>}
             <p className="text-[0.75rem] text-slate-400">{t("AI suggestion based on {name}'s readings and a {n} kcal goal. Follow your doctor's or dietitian's advice first.", { name: patient.full_name.split(' ')[0], n: patient.daily_kcal_goal })}</p>
           </div>

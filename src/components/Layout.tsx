@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { ErrorBoundary } from './ErrorBoundary';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Activity, ChevronDown, Droplet, Droplets, FileText, Flame, FlaskConical, Gauge, HeartPulse, Home, LayoutGrid, Pill, Plus, Scale, Thermometer, Wind, Check, Bell } from 'lucide-react';
 import { useApp } from '../lib/store';
@@ -113,7 +114,7 @@ export default function Layout() {
       )}
       {isHome && <UpdateBanner />}
       <main className={cx('px-4 pb-32', !isHome && 'safe-top pt-3')}>
-        <Outlet />
+        <ErrorBoundary resetKey={loc.pathname}><Outlet /></ErrorBoundary>
       </main>
 
       {due && (
