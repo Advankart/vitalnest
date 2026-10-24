@@ -13,6 +13,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(FontScalePlugin.class);
         registerPlugin(PrintPlugin.class);
+        registerPlugin(UpdaterPlugin.class);
         super.onCreate(savedInstanceState);
         // Stop the WebView from enlarging text on its own (it breaks the layout).
         // The app reads the phone's font size via FontScalePlugin and scales everything evenly instead.

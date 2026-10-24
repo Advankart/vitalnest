@@ -326,4 +326,7 @@ export const TA: Record<string, string> = {
   'Share summary': 'சுருக்கத்தைப் பகிர்', 'Always check the original report and follow your doctor.': 'எப்போதும் அசல் அறிக்கையைச் சரிபார்த்து மருத்துவரைப் பின்பற்றுங்கள்.',
   'AI summary · VitalNest — check with your doctor': 'AI சுருக்கம் · VitalNest — மருத்துவரிடம் சரிபாருங்கள்', 'Open original report': 'அசல் அறிக்கையைத் திற', 'Doctor visit': 'மருத்துவர் சந்திப்பு',
   'Critical': 'அபாயம்',
+  'Downloading update… {n}%': 'புதுப்பிப்பு பதிவிறக்குகிறது… {n}%', 'Tap Install on the next screen': 'அடுத்த திரையில் "Install" தட்டுங்கள்',
+  'Allow "Install unknown apps" for VitalNest, come back and tap Update again.': 'VitalNest-க்கு "Install unknown apps" அனுமதியுங்கள், பிறகு திரும்பி வந்து மீண்டும் "புதுப்பி" தட்டுங்கள்.',
+  'Update failed — please try again': 'புதுப்பிப்பு தோல்வி — மீண்டும் முயற்சி செய்யுங்கள்',
 };
