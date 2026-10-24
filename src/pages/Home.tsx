@@ -12,6 +12,7 @@ import type { Vital, VitalKind } from '../lib/types';
 import { Empty, Ring, Section, Spinner, cx } from '../components/ui';
 import { VitalIcon } from '../components/Layout';
 import { MedThumb } from '../components/MedPhoto';
+import { NextVisitCard } from './Appointments';
 import { DietCard, MotivationCard } from '../components/AICards';
 
 const PARTS = [
@@ -118,6 +119,8 @@ export default function Home() {
       </div>
 
       <ErrorBoundary fallback={null}><MotivationCard latestId={data.vitals[0]?.id} /></ErrorBoundary>
+
+      <NextVisitCard />
 
       {/* Alerts */}
       {critical.slice(0, 2).map(v => {

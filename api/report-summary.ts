@@ -8,6 +8,24 @@ export const config = { maxDuration: 120 };
 
 const MODELS = [process.env.ANTHROPIC_REPORT_MODEL, 'claude-sonnet-4-5', 'claude-haiku-4-5'] as string[];
 
+/** Follow-up visits / tests with an exact calendar date, so the app can remind the family. */
+const NEXT_VISITS = {
+  type: 'array',
+  description: 'Every future review visit or test mentioned (e.g. "review after 7 days", "repeat echo after 3 months", "next visit on 24/11"). Give an exact date.',
+  items: {
+    type: 'object',
+    properties: {
+      what: { type: 'string', description: 'Short, e.g. "Review with Dr. Kumar (Cardiology)", "Repeat Echo", "Fasting lipid profile"' },
+      kind: { type: 'string', enum: ['visit', 'test'] },
+      doctor: { type: ['string', 'null'] },
+      date: { type: ['string', 'null'], description: 'YYYY-MM-DD. If relative ("after 2 weeks"), count from the discharge/prescription date of the document; if no document date, from the upload date given.' },
+      time: { type: ['string', 'null'], description: 'HH:MM 24h if a time is written' },
+      when_text: { type: ['string', 'null'], description: 'The words used, e.g. "after 1 week", "SOS"' },
+    },
+    required: ['what', 'kind', 'date'],
+  },
+};
+
 const flagList = { type: 'string', enum: ['low', 'normal', 'high', 'critical', 'unknown'] };
 const TOOL = {
   description: 'Structured summary of a medical document.',
@@ -37,6 +55,7 @@ const TOOL = {
       follow_up: { type: 'array', items: { type: 'string' }, description: 'Review visits and tests to do, with dates' },
       advice: { type: 'array', items: { type: 'string' }, description: 'Diet, activity, care instructions' },
       warning_signs: { type: 'array', items: { type: 'string' }, description: 'When to go to hospital immediately, as written' },
+      next_visits: NEXT_VISITS,
     },
     required: ['readable', 'doc_type', 'title', 'summary', 'diagnoses', 'key_findings', 'lab_results', 'procedures', 'medicines', 'follow_up', 'advice', 'warning_signs'],
   },
@@ -62,10 +81,28 @@ export default async function handler(req: any, res: any) {
     if (!/^[0-9a-f-]{36}$/i.test(id)) return res.status(400).json({ error: 'Bad request' });
 
     // access check (row-level security as the signed-in user)
-    const [r] = await asUser<any[]>(req.headers.authorization, `/rest/v1/reports?id=eq.${id}&select=id,title,category,file_path,mime_type,size_bytes,ai_summary`);
+    const [r] = await asUser<any[]>(req.headers.authorization, `/rest/v1/reports?id=eq.${id}&select=id,title,category,file_path,mime_type,size_bytes,ai_summary,report_date,created_at`);
     if (!r) return res.status(403).json({ error: 'No access to this report' });
 
     const existing = r.ai_summary?.[lang];
+
+    // Older summaries had no exact follow-up dates: work them out from the saved text (small, cheap call — no re-reading the file)
+    if (body.followups && existing && valid(existing)) {
+      if (Array.isArray(existing.next_visits)) return res.status(200).json({ ...existing, cached: true });
+      let next_visits: any[] = [];
+      if ((existing.follow_up ?? []).length) {
+        const c = await callClaude({
+          models: ['claude-haiku-4-5', 'claude-sonnet-4-5'], temperature: 0, maxTokens: 1200,
+          tool: { description: 'Follow-up visits and tests with exact dates.', schema: { type: 'object', properties: { next_visits: NEXT_VISITS }, required: ['next_visits'] } },
+          content: [{ type: 'text', text: `Medical document: ${existing.title}. Document date: ${existing.date || 'not given'}. Uploaded on: ${r.report_date || String(r.created_at || '').slice(0, 10)}. Doctor: ${existing.doctor || '-'}.\nFollow-up instructions:\n- ${existing.follow_up.join('\n- ')}\n\nList each future visit/test with an exact date (YYYY-MM-DD). Keep "what" in the same language as the instructions.` }],
+        });
+        next_visits = Array.isArray(c.out?.next_visits) ? c.out.next_visits : [];
+      }
+      const updated = { ...existing, next_visits };
+      await sb(`/rest/v1/reports?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ ai_summary: { ...(r.ai_summary || {}), [lang]: updated } }) });
+      return res.status(200).json({ ...updated, cached: false });
+    }
+
     if (existing && !body.refresh && valid(existing)) return res.status(200).json({ ...existing, cached: true });
 
     const mime = String(r.mime_type || '');
@@ -88,7 +125,7 @@ export default async function handler(req: any, res: any) {
       const c = await callClaude({
         models: MODELS, system: SYSTEM + (lang === 'ta' ? TAMIL : ''), tool: TOOL, temperature: 0,
         maxTokens: (lang === 'ta' ? 9000 : 4000) * (attempt + 1),
-        content: [file, { type: 'text', text: `This is a "${r.category || 'medical'}" document titled "${r.title}". Summarise it for the family using the report tool. For discharge summaries focus on: diagnosis, what was done, condition at discharge, discharge medicines, follow-up and warning signs. For lab reports list every abnormal value first.` }],
+        content: [file, { type: 'text', text: `This is a "${r.category || 'medical'}" document titled "${r.title}", uploaded on ${r.report_date || String(r.created_at || '').slice(0, 10)}. Summarise it for the family using the report tool. For discharge summaries focus on: diagnosis, what was done, condition at discharge, discharge medicines, follow-up and warning signs. For lab reports list every abnormal value first.` }],
       });
       out = c.out; model = c.model;
     }

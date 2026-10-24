@@ -7,7 +7,7 @@ export type ScanKind = 'glucose' | 'bp' | 'medicine' | 'prescription';
 export interface GlucoseScan { found: boolean; value: number | null; unit: 'mg/dL' | 'mmol/L' | null; meal_marker?: string | null; confidence: string; note?: string }
 export interface BPScan { found: boolean; systolic: number | null; diastolic: number | null; pulse: number | null; confidence: string; note?: string }
 export interface RxMed { name: string; strength?: string | null; form: string; dose?: string | null; slot_doses?: Partial<Record<'morning' | 'afternoon' | 'night', string>> | null; slots: ('morning' | 'afternoon' | 'night')[]; as_needed?: boolean; food_relation: string; duration_days?: number | null; notes?: string | null; confidence: string }
-export interface RxScan { found: boolean; doctor?: string | null; date?: string | null; medicines: RxMed[]; confidence: string; note?: string }
+export interface RxScan { found: boolean; doctor?: string | null; date?: string | null; review?: { when_text?: string; date?: string | null } | null; medicines: RxMed[]; confidence: string; note?: string }
 export interface MedScan { found: boolean; name: string | null; strength: string | null; form: string | null; composition: string | null; manufacturer?: string | null; purpose?: string | null; confidence: string; note?: string }
 
 /** Resize a photo to the AI's native resolution (1568px long side) as a sharp JPEG. */

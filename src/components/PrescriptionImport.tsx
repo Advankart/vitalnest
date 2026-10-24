@@ -5,7 +5,8 @@ import { AlertTriangle, Check, Moon, Sun, Sunrise, Trash2 } from 'lucide-react';
 import { useApp } from '../lib/store';
 import { api } from '../lib/api';
 import { dayKey, FOOD_REL, MED_FORMS } from '../lib/health';
-import type { Medicine } from '../lib/types';
+import type { Appointment, Medicine } from '../lib/types';
+import { format, parseISO } from 'date-fns';
 import type { RxMed, RxScan } from '../lib/scan';
 import { ScanButton } from './ScanButton';
 import { Button, Field, cx } from './ui';
@@ -24,6 +25,8 @@ export function PrescriptionImport({ onDone }: { onDone: () => void }) {
   const [rx, setRx] = useState<{ doctor?: string | null; date?: string | null }>({});
   const [files, setFiles] = useState<File[]>([]);
   const [saveRx, setSaveRx] = useState(true);
+  const [review, setReview] = useState<{ date: string; when?: string } | null>(null);
+  const [remind, setRemind] = useState(true);
   const [busy, setBusy] = useState(false);
   const up = (i: number, patch: Partial<Row>) => setRows(r => r!.map((x, j) => (j === i ? { ...x, ...patch } : x)));
 
@@ -46,6 +49,12 @@ export function PrescriptionImport({ onDone }: { onDone: () => void }) {
           notes: [r.notes, note].filter(Boolean).join(' · ') || null,
         });
       }
+      if (review && remind) {
+        await api().insert<Appointment>('appointments', {
+          patient_id: patient!.id, title: rx.doctor ? t('Review with {doctor}', { doctor: rx.doctor }) : t('Doctor review'), kind: 'visit',
+          doctor: rx.doctor || null, appt_date: review.date, notes: review.when || null, source: 'prescription', done: false,
+        }).catch(() => { });
+      }
       if (saveRx && files.length) {
         for (const [i, f] of files.entries()) {
           await api().uploadReport(patient!.id, f, { title: `Prescription${rx.doctor ? ' – ' + rx.doctor : ''}${files.length > 1 ? ` (page ${i + 1})` : ''}`, category: 'prescription', report_date: dayKey(today) }).catch(() => { });
@@ -61,6 +70,7 @@ export function PrescriptionImport({ onDone }: { onDone: () => void }) {
     <div className="space-y-4">
       <ScanButton<RxScan> kind="prescription" onFiles={setFiles} onResult={r => {
         setRx({ doctor: r.doctor, date: r.date });
+        setReview(r.review?.date && /^\d{4}-\d{2}-\d{2}$/.test(r.review.date) ? { date: r.review.date, when: r.review.when_text } : null);
         setRows(r.medicines.map(m => ({ ...m, slots: m.slots ?? [], keep: !m.as_needed })));
       }} />
 
@@ -115,6 +125,12 @@ export function PrescriptionImport({ onDone }: { onDone: () => void }) {
               </div>
             ))}
           </div>
+          {review && (
+            <label className="flex items-center gap-3 rounded-2xl bg-sky-50 p-3 text-sm dark:bg-sky-500/10">
+              <input type="checkbox" className="h-5 w-5 shrink-0 accent-brand-600" checked={remind} onChange={e => setRemind(e.target.checked)} />
+              <span className="min-w-0"><span className="font-semibold">{t('Next review: {date}', { date: format(parseISO(review.date), 'EEE, d MMM yyyy') })}</span>{review.when ? <span className="text-slate-500"> ({review.when})</span> : null}<br /><span className="text-[0.75rem] text-slate-500">{t('Set a reminder for this visit')}</span></span>
+            </label>
+          )}
           <Field><label className="flex items-center gap-3 text-sm"><input type="checkbox" className="h-5 w-5 accent-brand-600" checked={saveRx} onChange={e => setSaveRx(e.target.checked)} />Also save the prescription photo in Reports</label></Field>
           <p className="px-1 text-[0.75rem] text-slate-500">Times: Morning 8 AM · Afternoon 2 PM · Night 9 PM — change any medicine later from Medicines.</p>
           <Button block size="lg" loading={busy} onClick={save}>{t(rows.filter(r => r.keep).length === 1 ? 'Add {n} medicine' : 'Add {n} medicines', { n: rows.filter(r => r.keep).length })}</Button>

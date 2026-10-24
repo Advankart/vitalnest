@@ -2,8 +2,8 @@ import { Capacitor } from '@capacitor/core';
 import { t as tr, tDose } from './i18n';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { api } from './api';
-import type { Medicine, Patient, Reminder } from './types';
-import { dayKey, doseFor, FOOD_REL, hhmm, VITALS } from './health';
+import type { Appointment, Medicine, Patient, Reminder } from './types';
+import { dayKey, doseFor, FOOD_REL, hhmm, to12h, VITALS } from './health';
 
 export const isNative = () => Capacitor.isNativePlatform();
 
@@ -58,17 +58,37 @@ function buildSlots(patients: Patient[], meds: Medicine[], rems: Reminder[]): Sl
   return out;
 }
 
+/** Doctor visit / test reminders: the evening before (7 PM) and on the day (2 h before, or 7 AM). */
+function visitAlerts(patients: Patient[], appts: Appointment[]) {
+  const name = (pid: string) => patients.find(p => p.id === pid)?.full_name.split(' ')[0] ?? '';
+  const now = Date.now(), out: { at: Date; title: string; body: string; patient_id: string }[] = [];
+  for (const a of appts) {
+    if (a.done || !/^\d{4}-\d{2}-\d{2}$/.test(a.appt_date)) continue;
+    const [y, m, d] = a.appt_date.split('-').map(Number);
+    const [hh, mm] = (a.appt_time && /^\d{2}:\d{2}$/.test(a.appt_time) ? a.appt_time : '').split(':').map(Number);
+    const icon = a.kind === 'test' ? '🧪' : '🩺';
+    const what = [a.title, a.doctor && !a.title.includes(a.doctor) ? a.doctor : '', a.hospital].filter(Boolean).join(' · ');
+    const timeTxt = a.appt_time ? ` ${tr('at {time}', { time: to12h(a.appt_time) })}` : '';
+    const eve = new Date(y, m - 1, d - 1, 19, 0);
+    const day = a.appt_time ? new Date(y, m - 1, d, (hh || 9) - 2, mm || 0) : new Date(y, m - 1, d, 7, 0);
+    if (+eve > now) out.push({ at: eve, title: `${icon} ${name(a.patient_id)} · ${tr('Tomorrow')}${timeTxt}`, body: what, patient_id: a.patient_id });
+    if (+day > now) out.push({ at: day, title: `${icon} ${name(a.patient_id)} · ${tr('Today')}${timeTxt}`, body: what, patient_id: a.patient_id });
+  }
+  return out.slice(0, 60);
+}
+
 let lastSig = '';
 export async function rescheduleAll(patients: Patient[]) {
   const ids = notifyEnabled() ? notifyPatientIds(patients) : [];
-  const [meds, rems] = ids.length
-    ? await Promise.all([api().list<Medicine>('medicines', ids), api().list<Reminder>('reminders', ids)])
-    : [[], []];
+  const [meds, rems, appts] = ids.length
+    ? await Promise.all([api().list<Medicine>('medicines', ids), api().list<Reminder>('reminders', ids), api().list<Appointment>('appointments', ids).catch(() => [] as Appointment[])])
+    : [[], [], []];
   const slots = buildSlots(patients, meds as Medicine[], rems as Reminder[]);
+  const visits = visitAlerts(patients, appts as Appointment[]);
   webSlots = slots;
   if (!isNative()) return slots.length;
 
-  const sig = JSON.stringify(slots.map(s => [s.key, s.time, s.days, s.title, s.body]));
+  const sig = JSON.stringify([slots.map(s => [s.key, s.time, s.days, s.title, s.body]), visits.map(v => [v.at.getTime(), v.title])]);
   if (sig === lastSig) return slots.length;
   lastSig = sig;
 
@@ -91,6 +111,7 @@ export async function rescheduleAll(patients: Patient[]) {
       for (const d of s.days) notifications.push({ ...base, id: id++, schedule: { on: { weekday: d + 1, hour, minute }, allowWhileIdle: true } });
     }
   }
+  for (const v of visits) notifications.push({ id: id++, title: v.title, body: v.body, channelId: 'reminders', extra: { type: 'visit', patient_id: v.patient_id }, autoCancel: true, schedule: { at: v.at, allowWhileIdle: true } });
   if (notifications.length) await LocalNotifications.schedule({ notifications: notifications.slice(0, 450) });
   return notifications.length;
 }
@@ -117,7 +138,7 @@ export async function initNotifications(navigate: (path: string) => void) {
           return;
         }
         if (x.patient_id) { try { localStorage.setItem('vn_patient', x.patient_id); } catch { /* ignore */ } }
-        navigate(x.type === 'med' ? '/meds' : x.kind && x.kind !== 'water' ? `/add/${x.kind}` : x.kind === 'water' ? '/water' : '/');
+        navigate(x.type === 'visit' ? '/appointments' : x.type === 'med' ? '/meds' : x.kind && x.kind !== 'water' ? `/add/${x.kind}` : x.kind === 'water' ? '/water' : '/');
       });
     } catch { /* plugin missing */ }
   } else {

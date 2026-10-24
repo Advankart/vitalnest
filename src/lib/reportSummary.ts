@@ -35,3 +35,16 @@ export function summaryToText(s: ReportSummary, name: string, t: (k: string) => 
   L.push('', `_${t('AI summary · VitalNest — check with your doctor')}_`);
   return L.join('\n');
 }
+
+/** For summaries made before follow-up dates existed: work out the dates from the saved text (cheap, no re-reading). */
+export async function findFollowUps(r: Report): Promise<ReportSummary> {
+  const token = await api().accessToken();
+  if (!token) throw new Error('AI insights need you to be signed in (not available in demo mode).');
+  const res = await fetch(`${API_BASE}/api/report-summary`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ report_id: r.id, lang, followups: true }),
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(j.error || 'AI is not available right now');
+  return j as ReportSummary;
+}

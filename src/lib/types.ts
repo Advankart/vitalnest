@@ -142,11 +142,31 @@ export interface ReportSummary {
   procedures: string[];
   medicines: { name: string; dose?: string | null; timing?: string | null; duration?: string | null; purpose?: string | null }[];
   follow_up: string[]; advice: string[]; warning_signs: string[];
+  next_visits?: NextVisit[];
   model?: string; at?: string; lang?: string;
 }
 
 export interface CustomFood { id: string; family_id: string; name: string; unit: string; kcal: number; carbs: number; protein: number }
 
-export type PatientTable = 'vitals' | 'meals' | 'water_logs' | 'medicines' | 'medicine_logs' | 'reminders' | 'reports';
+export type PatientTable = 'vitals' | 'meals' | 'water_logs' | 'medicines' | 'medicine_logs' | 'reminders' | 'reports' | 'appointments';
+
+export interface Appointment {
+  id: string;
+  patient_id: string;
+  title: string;
+  kind: 'visit' | 'test';
+  doctor?: string | null;
+  hospital?: string | null;
+  appt_date: string;          // YYYY-MM-DD
+  appt_time?: string | null;  // HH:MM
+  notes?: string | null;
+  source?: string;
+  report_id?: string | null;
+  done: boolean;
+  created_at?: string;
+}
+
+/** A follow-up found by AI in a report or prescription */
+export interface NextVisit { what: string; kind: 'visit' | 'test'; doctor?: string | null; date?: string | null; time?: string | null; when_text?: string | null }
 
 export interface PushToken { id: string; user_id: string; token: string; platform: 'android' | 'web'; alerts_vitals: boolean; alerts_meds: boolean }

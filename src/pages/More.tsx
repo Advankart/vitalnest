@@ -6,7 +6,7 @@ import { stopPush } from '../lib/push';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { Link } from 'react-router-dom';
-import { Bell, ChevronRight, Droplets, FileText, History, KeyRound, LogOut, Moon, Share2, Sun, SunMoon, UserRound, Users, Utensils, Info, FlaskConical } from 'lucide-react';
+import { Bell, ChevronRight, Droplets, FileText, History, KeyRound, LogOut, Moon, Share2, Sun, SunMoon, UserRound, Users, Utensils, Info, FlaskConical, CalendarClock } from 'lucide-react';
 import { useApp } from '../lib/store';
 import { api, isDemo, setDemo, resetApi } from '../lib/api';
 import { resetDemo } from '../lib/demo';
@@ -64,6 +64,7 @@ export default function More() {
         <Item to="/food" icon={<Utensils className="h-5 w-5" />} label="Food & calories" color="#16a34a" />
         <Item to="/water" icon={<Droplets className="h-5 w-5" />} label="Water" color="#0ea5e9" />
         <Item to="/reports" icon={<FileText className="h-5 w-5" />} label="Health reports" sub="Upload lab reports, prescriptions, scans" color="#475569" />
+        <Item to="/appointments" icon={<CalendarClock className="h-5 w-5" />} label="Doctor visits" sub="Next review & test dates with reminders" color="#0284c7" />
         <Item to="/history" icon={<History className="h-5 w-5" />} label="All readings" color="#e11d48" />
         <Item to="/add/hba1c" icon={<FlaskConical className="h-5 w-5" />} label="Add lab HbA1c" color="#be185d" />
       </div>

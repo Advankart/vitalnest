@@ -196,7 +196,7 @@ function cloudApi(sb: SupabaseClient): Api {
 
     subscribe(onChange) {
       const ch = sb.channel('vn-live');
-      for (const t of ['vitals', 'meals', 'water_logs', 'medicine_logs']) {
+      for (const t of ['vitals', 'meals', 'water_logs', 'medicine_logs', 'appointments']) {
         ch.on('postgres_changes', { event: '*', schema: 'public', table: t }, () => onChange());
       }
       ch.subscribe();

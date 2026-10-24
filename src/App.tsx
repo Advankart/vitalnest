@@ -16,6 +16,7 @@ import Meds from './pages/Meds';
 import { AddMeal, FoodLog } from './pages/Food';
 import Water from './pages/Water';
 import Reports from './pages/Reports';
+import Appointments from './pages/Appointments';
 import Reminders from './pages/Reminders';
 import PatientForm from './pages/PatientForm';
 import Family, { Patients } from './pages/Family';
@@ -61,6 +62,7 @@ function Gate() {
           <Route path="food/add" element={<AddMeal />} />
           <Route path="water" element={<Water />} />
           <Route path="reports" element={<Reports />} />
+          <Route path="appointments" element={<Appointments />} />
           <Route path="reminders" element={<Reminders />} />
           <Route path="patients" element={<Patients />} />
           <Route path="patients/new" element={<PatientForm />} />

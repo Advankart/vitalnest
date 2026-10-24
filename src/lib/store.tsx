@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { api } from './api';
-import type { AppUser, Meal, Medicine, MedicineLog, Membership, Patient, Reminder, Role, Vital, WaterLog } from './types';
+import type { Appointment, AppUser, Meal, Medicine, MedicineLog, Membership, Patient, Reminder, Role, Vital, WaterLog } from './types';
 import { rescheduleAll } from './notify';
 
 interface PatientData {
@@ -10,8 +10,9 @@ interface PatientData {
   meds: Medicine[];
   medLogs: MedicineLog[];
   reminders: Reminder[];
+  appointments: Appointment[];
 }
-const EMPTY: PatientData = { vitals: [], meals: [], water: [], meds: [], medLogs: [], reminders: [] };
+const EMPTY: PatientData = { vitals: [], meals: [], water: [], meds: [], medLogs: [], reminders: [], appointments: [] };
 
 interface Ctx {
   ready: boolean;
@@ -144,15 +145,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const since = new Date(Date.now() - 366 * 864e5).toISOString();
     const ids = [patientId];
     try {
-      const [vitals, meals, water, meds, medLogs, reminders] = await Promise.all([
+      const [vitals, meals, water, meds, medLogs, reminders, appointments] = await Promise.all([
         api().list<Vital>('vitals', ids, since, 'measured_at'),
         api().list<Meal>('meals', ids, since, 'eaten_at'),
         api().list<WaterLog>('water_logs', ids, since, 'logged_at'),
         api().list<Medicine>('medicines', ids),
         api().list<MedicineLog>('medicine_logs', ids, since, 'logged_at'),
         api().list<Reminder>('reminders', ids),
+        api().list<Appointment>('appointments', ids).catch(() => [] as Appointment[]),
       ]);
-      setData({ vitals, meals, water, meds, medLogs, reminders });
+      setData({ vitals, meals, water, meds, medLogs, reminders, appointments });
     } catch (e) {
       toast((e as Error).message, 'err');
     } finally { setLoading(false); }
@@ -172,7 +174,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!user || !patients.length) return;
     rescheduleAll(patients).catch(() => { /* ignore */ });
-  }, [user, patients, data.meds, data.reminders]);
+  }, [user, patients, data.meds, data.reminders, data.appointments]);
 
   const canEditFor = useCallback((p: Patient | null | undefined) => canEditPatient(p, role, user?.id, memberIds), [role, user?.id, memberIds]);
   const canEdit = canEditFor(patient);

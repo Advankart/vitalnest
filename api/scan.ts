@@ -95,7 +95,7 @@ Step 2 – return one entry per medicine in "medicines". For each:
 • food_relation: before_food (AC / before meals), empty_stomach, after_food (PC / after meals), with_food, or any.
 • duration_days: number of days if written ("x 30 days", "1 month" = 30, "continue" = null).
 • notes: anything else for that medicine (e.g. "only if sugar > 250", "alternate days").
-Also return doctor and date if visible. Skip lab tests, advice and diet lines — medicines only.
+Also return doctor and date if visible, and the next review visit (review) if written. Today is ${new Date().toISOString().slice(0, 10)}. Skip lab tests, advice and diet lines — medicines only.
 Never invent medicines. If a line is hard to read, include your best reading with confidence "low" for that item.`,
     schema: {
       type: 'object',
@@ -104,6 +104,7 @@ Never invent medicines. If a line is hard to read, include your best reading wit
         found: { type: 'boolean' },
         doctor: { type: ['string', 'null'] },
         date: { type: ['string', 'null'], description: 'Prescription date as written' },
+        review: { type: ['object', 'null'], description: 'Next review visit if written ("review after 1 month", "next visit 24/11")', properties: { when_text: { type: 'string' }, date: { type: ['string', 'null'], description: 'YYYY-MM-DD; count relative periods from the prescription date (or today if no date)' } } },
         medicines: {
           type: 'array',
           items: {

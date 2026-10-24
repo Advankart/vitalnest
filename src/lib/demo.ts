@@ -19,7 +19,7 @@ let mem: DB | null = null;
 
 function load(): DB {
   if (mem) return mem;
-  try { const raw = localStorage.getItem(KEY); if (raw) { mem = JSON.parse(raw); return mem!; } } catch { /* ignore */ }
+  try { const raw = localStorage.getItem(KEY); if (raw) { mem = JSON.parse(raw); mem!.tables.appointments ??= []; return mem!; } } catch { /* ignore */ }
   mem = seed();
   save();
   return mem;
@@ -118,7 +118,7 @@ function seed(): DB {
     families: [fam],
     members: [{ family_id: fam.id, user_id: userId, role: 'admin' }],
     patients,
-    tables: { vitals, meals, water_logs: water, medicines: meds, medicine_logs: medLogs, reminders, reports: [] },
+    tables: { vitals, meals, water_logs: water, medicines: meds, medicine_logs: medLogs, reminders, reports: [], appointments: [] },
     custom_foods: [],
     files: {},
   };

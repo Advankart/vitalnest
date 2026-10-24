@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { AlertTriangle, CalendarClock, CheckCircle2, ClipboardList, Eye, FlaskConical, HeartPulse, Pill, RefreshCw, Share2, ShieldAlert, Sparkles, Stethoscope, Utensils } from 'lucide-react';
+import { BellPlus, AlertTriangle, CalendarClock, CheckCircle2, ClipboardList, Eye, FlaskConical, HeartPulse, Pill, RefreshCw, Share2, ShieldAlert, Sparkles, Stethoscope, Utensils } from 'lucide-react';
 import { formatDistanceToNowStrict } from 'date-fns';
 import type { Report, ReportSummary } from '../lib/types';
-import { savedSummary, summariseReport, summaryToText } from '../lib/reportSummary';
+import { findFollowUps, savedSummary, summariseReport, summaryToText } from '../lib/reportSummary';
+import type { Appointment, NextVisit } from '../lib/types';
+import { format, parseISO } from 'date-fns';
+import { to12h } from '../lib/health';
 import { shareText } from '../lib/share';
 import { api } from '../lib/api';
 import { t } from '../lib/i18n';
@@ -32,7 +35,9 @@ const Bullets = ({ items }: { items: string[] }) => (
 
 /** Clean VitalNest view of a report's AI summary. Uses the saved summary; AI only runs when asked. */
 export function ReportSummaryView({ report, onSaved }: { report: Report; onSaved: (r: Report) => void }) {
-  const { patient, toast } = useApp();
+  const { patient, toast, data, canEdit, refreshData } = useApp();
+  const [fuBusy, setFuBusy] = useState(false);
+  const [adding, setAdding] = useState<string | null>(null);
   const [s, setS] = useState<ReportSummary | null>(() => savedSummary(report));
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -46,6 +51,24 @@ export function ReportSummaryView({ report, onSaved }: { report: Report; onSaved
       setS(out);
       onSaved({ ...report, ai_summary: { ...(report.ai_summary ?? {}), [out.lang === 'ta' ? 'ta' : 'en']: out } });
     } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
+  }
+
+  const saveSummary = (out: ReportSummary) => { setS(out); onSaved({ ...report, ai_summary: { ...(report.ai_summary ?? {}), [out.lang === 'ta' ? 'ta' : 'en']: out } }); };
+  async function findDates() {
+    setFuBusy(true); setErr('');
+    try { saveSummary(await findFollowUps(report)); } catch (e) { setErr((e as Error).message); } finally { setFuBusy(false); }
+  }
+  const added = (v: NextVisit) => data.appointments.some(a => a.report_id === report.id && a.appt_date === v.date && a.title === v.what);
+  async function addVisit(v: NextVisit) {
+    if (!v.date || !patient) return;
+    setAdding(v.what + v.date);
+    try {
+      await api().insert<Appointment>('appointments', {
+        patient_id: patient.id, title: v.what, kind: v.kind === 'test' ? 'test' : 'visit', doctor: v.doctor || s?.doctor || null, hospital: s?.hospital || null,
+        appt_date: v.date, appt_time: v.time && /^\d{2}:\d{2}$/.test(v.time) ? v.time : null, notes: v.when_text || null, source: 'report', report_id: report.id, done: false,
+      });
+      await refreshData(); toast(t('Saved · reminder set'));
+    } catch (e) { toast((e as Error).message, 'err'); } finally { setAdding(null); }
   }
 
   if (!s) {
@@ -123,7 +146,28 @@ export function ReportSummaryView({ report, onSaved }: { report: Report; onSaved
         </Block>
       )}
 
-      {s.follow_up.length > 0 && <Block icon={<CalendarClock className="h-4 w-4 text-brand-600" />} title={t('Follow-up')}><Bullets items={s.follow_up} /></Block>}
+      {s.follow_up.length > 0 && <Block icon={<CalendarClock className="h-4 w-4 text-brand-600" />} title={t('Follow-up')}>
+        <Bullets items={s.follow_up} />
+        {s.next_visits === undefined && canEdit && api().mode === 'cloud' && (
+          <Button size="sm" variant="soft" className="mt-3 w-full" loading={fuBusy} onClick={findDates}><BellPlus className="h-4 w-4" />{t('Find dates & set reminders')}</Button>
+        )}
+        {(s.next_visits ?? []).filter(v => v.date).length > 0 && (
+          <div className="mt-3 space-y-2">
+            {(s.next_visits ?? []).filter(v => v.date && /^\d{4}-\d{2}-\d{2}$/.test(v.date)).map((v, i) => {
+              const done = added(v);
+              return (
+                <div key={i} className="flex items-center gap-3 rounded-xl bg-sky-50 px-3 py-2 dark:bg-sky-500/10">
+                  <div className="w-11 shrink-0 text-center"><div className="text-[1rem] font-extrabold leading-none">{format(parseISO(v.date!), 'd')}</div><div className="text-[0.625rem] font-semibold uppercase text-slate-500">{format(parseISO(v.date!), 'MMM')}</div></div>
+                  <div className="min-w-0 flex-1"><div className="break-words text-[0.8438rem] font-semibold">{v.what}</div><div className="text-[0.6875rem] text-slate-500">{[format(parseISO(v.date!), 'EEE, d MMM yyyy'), v.time ? to12h(v.time) : '', v.when_text].filter(Boolean).join(' · ')}</div></div>
+                  {canEdit && (done
+                    ? <span className="shrink-0 text-[0.75rem] font-semibold text-brand-600 dark:text-brand-300">{t('Reminder set ✓')}</span>
+                    : <Button size="sm" className="shrink-0" loading={adding === v.what + v.date} onClick={() => addVisit(v)}><BellPlus className="h-4 w-4" />{t('Remind')}</Button>)}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Block>}
       {s.advice.length > 0 && <Block icon={<Utensils className="h-4 w-4 text-orange-500" />} title={t('Care & diet advice')}><Bullets items={s.advice} /></Block>}
       {s.warning_signs.length > 0 && <Block tone="red" icon={<ShieldAlert className="h-4 w-4" />} title={t('Go to hospital immediately if')}><Bullets items={s.warning_signs} /></Block>}
 
