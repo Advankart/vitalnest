@@ -41,6 +41,7 @@ export function PrescriptionImport({ onDone }: { onDone: () => void }) {
           patient_id: patient!.id, name: r.name.trim(), strength: r.strength || null, form: MED_FORMS.includes(r.form) ? r.form : 'tablet',
           dose: r.dose || null, food_relation: r.food_relation in FOOD_REL ? r.food_relation : 'after_food',
           times: r.slots.map(s => SLOT_TIME[s]).sort(), days: [0, 1, 2, 3, 4, 5, 6], active: true,
+          dose_by_time: (() => { const e = r.slots.map(s => [SLOT_TIME[s], (r.slot_doses?.[s] ?? '').trim()] as const).filter(([, v]) => v && v !== (r.dose ?? '').trim()); return e.length ? Object.fromEntries(e) : null; })(),
           start_date: dayKey(today), end_date: r.duration_days ? dayKey(addDays(today, r.duration_days - 1)) : null,
           notes: [r.notes, note].filter(Boolean).join(' · ') || null,
         });
@@ -92,6 +93,16 @@ export function PrescriptionImport({ onDone }: { onDone: () => void }) {
                         );
                       })}
                     </div>
+                    {r.slots.length > 1 && (
+                      <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${r.slots.length}, minmax(0, 1fr))` }}>
+                        {SLOTS.filter(x => r.slots.includes(x.id)).map(({ id, label }) => (
+                          <label key={id} className="min-w-0 text-[0.6875rem] font-semibold text-slate-500">{label}
+                            <input className="field mt-0.5 px-2 py-1.5 text-sm" value={r.slot_doses?.[id] ?? ''} placeholder={r.dose || '1 tablet'}
+                              onChange={e => up(i, { slot_doses: { ...(r.slot_doses ?? {}), [id]: e.target.value } })} />
+                          </label>
+                        ))}
+                      </div>
+                    )}
                     <div className="grid grid-cols-2 gap-2">
                       <select className="field py-2 text-sm" value={r.food_relation} onChange={e => up(i, { food_relation: e.target.value })}>{Object.entries(FOOD_REL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
                       <div className="relative"><input type="number" inputMode="numeric" className="field py-2 pr-12 text-sm" value={r.duration_days ?? ''} placeholder="Days" onChange={e => up(i, { duration_days: e.target.value ? Number(e.target.value) : null })} /><span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">days</span></div>

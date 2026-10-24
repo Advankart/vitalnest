@@ -7,7 +7,7 @@ import { AlertTriangle, Check, ChevronRight, Clock, Droplets, FileText, Flame, M
 import { Area, AreaChart, ResponsiveContainer, YAxis } from 'recharts';
 import { useApp } from '../lib/store';
 import { toggleDose } from '../lib/actions';
-import { advice, classify, ctxLabel, dayKey, eA1c, fmtVital, hhmm, medsForDate, STATUS_STYLE, stats, to12h, VITALS, vitalsFor, FOOD_REL } from '../lib/health';
+import { doseFor, advice, classify, ctxLabel, dayKey, eA1c, fmtVital, hhmm, medsForDate, STATUS_STYLE, stats, to12h, VITALS, vitalsFor, FOOD_REL } from '../lib/health';
 import type { Vital, VitalKind } from '../lib/types';
 import { Empty, Ring, Section, Spinner, cx } from '../components/ui';
 import { VitalIcon } from '../components/Layout';
@@ -192,7 +192,7 @@ export default function Home() {
                           <MedThumb path={med.photo_path} form={med.form} name={med.name} size="sm" />
                           <div className="min-w-0 flex-1">
                             <div className={cx('break-words text-[0.9062rem] font-semibold', isDone && 'text-slate-400 line-through')}>{med.name} <span className="font-normal text-slate-400">{med.strength}</span></div>
-                            <div className={cx('text-xs', overdue ? 'font-semibold text-amber-600' : 'text-slate-400')}>{[to12h(time), tDose(med.dose), tr(FOOD_REL[med.food_relation ?? ''] ?? '')].filter(Boolean).join(' · ')}</div>
+                            <div className={cx('text-xs', overdue ? 'font-semibold text-amber-600' : 'text-slate-400')}>{[to12h(time), tDose(doseFor(med, time)), tr(FOOD_REL[med.food_relation ?? ''] ?? '')].filter(Boolean).join(' · ')}</div>
                           </div>
                           <button onClick={() => toggleMed(med.id, time)} disabled={busyMed === med.id + time} aria-label={isDone ? 'Mark not taken' : 'Mark taken'}
                             className={cx('grid h-10 w-10 shrink-0 place-items-center rounded-full ring-2 transition active:scale-90', isDone ? 'bg-brand-600 text-white ring-brand-600' : overdue ? 'text-amber-500 ring-amber-300' : 'text-slate-300 ring-slate-200 dark:ring-white/10')}>

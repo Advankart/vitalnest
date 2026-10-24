@@ -6,7 +6,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useApp } from '../lib/store';
 import { api } from '../lib/api';
 import { toggleDose } from '../lib/actions';
-import { DAY_SHORT, FOOD_REL, MED_FORMS, dayKey, hhmm, medsForDate, to12h } from '../lib/health';
+import { DAY_SHORT, FOOD_REL, MED_FORMS, dayKey, doseFor, hhmm, medsForDate, timesWithDose, to12h } from '../lib/health';
 import type { Medicine } from '../lib/types';
 import { ScanButton } from '../components/ScanButton';
 import { toJpegBlob, type MedScan } from '../lib/scan';
@@ -39,7 +39,8 @@ function MedForm({ med, onClose }: { med: Partial<Medicine> | null; onClose: () 
         const newPath = await api().uploadMedPhoto(patient!.id, await toJpegBlob(photo));
         photo_path = newPath;
       }
-      const row = { ...m, photo_path, name: m.name.trim(), times: [...times].sort(), days, patient_id: patient!.id, active: m.active ?? true, form: m.form ?? 'tablet', stock: m.stock === undefined || (m.stock as unknown) === '' ? null : Number(m.stock) };
+      const dbt = Object.fromEntries(Object.entries(m.dose_by_time ?? {}).filter(([k, v]) => times.includes(k) && v.trim() && v.trim() !== (m.dose ?? '').trim()).map(([k, v]) => [k, v.trim()]));
+      const row = { ...m, photo_path, dose_by_time: Object.keys(dbt).length ? dbt : null, name: m.name.trim(), times: [...times].sort(), days, patient_id: patient!.id, active: m.active ?? true, form: m.form ?? 'tablet', stock: m.stock === undefined || (m.stock as unknown) === '' ? null : Number(m.stock) };
       if (med?.photo_path && med.photo_path !== photo_path) api().removePhoto(med.photo_path).catch(() => { });
       if (m.id) { const { id, ...rest } = row; await api().update<Medicine>('medicines', id!, rest); }
       else await api().insert<Medicine>('medicines', row);
@@ -81,16 +82,25 @@ function MedForm({ med, onClose }: { med: Partial<Medicine> | null; onClose: () 
       <Field label="Composition (active ingredients)"><input className="field" value={m.composition ?? ''} onChange={e => up('composition', e.target.value)} placeholder="e.g. Metformin Hydrochloride 500 mg" /></Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Strength"><input className="field" value={m.strength ?? ''} onChange={e => up('strength', e.target.value)} placeholder="500 mg / 100 U/mL" /></Field>
-        <Field label="Dose"><input className="field" value={m.dose ?? ''} onChange={e => up('dose', e.target.value)} placeholder="1 tablet / 8 units" /></Field>
+        <Field label="Usual dose"><input className="field" value={m.dose ?? ''} onChange={e => up('dose', e.target.value)} placeholder="1 tablet / 8 units" /></Field>
         <Field label="Type"><select className="field capitalize" value={m.form ?? 'tablet'} onChange={e => up('form', e.target.value)}>{MED_FORMS.map(f => <option key={f} value={f}>{f}</option>)}</select></Field>
         <Field label="Take"><select className="field" value={m.food_relation ?? 'after_food'} onChange={e => up('food_relation', e.target.value)}>{Object.entries(FOOD_REL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Field>
       </div>
       <Field label="Times">
-        <div className="flex flex-wrap gap-2">
-          {times.sort().map(t => (
-            <span key={t} className="chip bg-brand-600 py-2 pl-3 pr-2 text-[0.8125rem] text-white">{to12h(t)}<button onClick={() => up('times', times.filter(x => x !== t))} aria-label="Remove time"><X className="h-3.5 w-3.5" /></button></span>
-          ))}
-        </div>
+        {times.length > 0 && (
+          <div className="space-y-2">
+            {[...times].sort().map(t => (
+              <div key={t} className="flex items-center gap-2 rounded-2xl bg-brand-50 p-1.5 pl-3 dark:bg-brand-500/10">
+                <span className="w-[4.75rem] shrink-0 text-[0.875rem] font-bold text-brand-800 dark:text-brand-200">{to12h(t)}</span>
+                <input className="field min-w-0 flex-1 py-2 text-sm" value={m.dose_by_time?.[t] ?? ''} placeholder={m.dose || '1 tablet'}
+                  aria-label={tr('Dose at {time}', { time: to12h(t) })}
+                  onChange={e => setM(s => ({ ...s, dose_by_time: { ...(s.dose_by_time ?? {}), [t]: e.target.value } }))} />
+                <button type="button" className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-slate-400" onClick={() => setM(s => { const d = { ...(s.dose_by_time ?? {}) }; delete d[t]; return { ...s, times: times.filter(x => x !== t), dose_by_time: d }; })} aria-label="Remove time"><X className="h-4 w-4" /></button>
+              </div>
+            ))}
+            <p className="px-1 text-[0.75rem] text-slate-500">Different amount at a time? Type it next to that time (e.g. 2 tablets at night). Leave empty to use the usual dose.</p>
+          </div>
+        )}
         <div className="mt-2 flex gap-2">
           <input type="time" className="field flex-1" value={newTime} onChange={e => setNewTime(e.target.value)} />
           <Button variant="soft" type="button" onClick={() => newTime && !times.includes(newTime) && up('times', [...times, newTime])}><Plus className="h-4 w-4" />Add</Button>
@@ -191,7 +201,7 @@ export default function Meds() {
                           <MedThumb path={med.photo_path} form={med.form} name={med.name} />
                           <div className="min-w-0 flex-1">
                             <div className={cx('break-words font-semibold', done && 'text-slate-400 line-through')}>{med.name} <span className="text-[0.8125rem] font-normal text-slate-400">{med.strength}</span></div>
-                            <div className="text-xs text-slate-500">{[tDose(med.dose), tr(FOOD_REL[med.food_relation ?? ''] ?? '')].filter(Boolean).join(' · ')}</div>
+                            <div className="text-xs text-slate-500">{[tDose(doseFor(med, t)), tr(FOOD_REL[med.food_relation ?? ''] ?? '')].filter(Boolean).join(' · ')}</div>
                             {missed && <div className="text-[0.6875rem] font-semibold text-amber-600">Not marked yet</div>}
                           </div>
                           <button onClick={() => toggle(med, t)} aria-label="Mark taken" className={cx('grid h-11 w-11 shrink-0 place-items-center rounded-full ring-2 transition active:scale-90', done ? 'bg-brand-600 text-white ring-brand-600' : 'text-slate-300 ring-slate-200 dark:ring-white/10')}>
@@ -217,7 +227,7 @@ export default function Meds() {
                   <div className="truncate font-semibold">{m.name} <span className="text-[0.8125rem] font-normal text-slate-400">{m.strength}</span></div>
                   {m.composition && <div className="truncate text-[0.75rem] text-slate-400">{m.composition}</div>}
                   <div className="flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
-                    <span className="flex items-center gap-1"><AlarmClock className="h-3 w-3" />{m.times.map(to12h).join(', ')}</span>
+                    <span className="flex items-center gap-1"><AlarmClock className="h-3 w-3" />{timesWithDose(m, tDose)}</span>
                     {m.days.length < 7 && <span>{m.days.map(d => DAY_SHORT[d]).join(' ')}</span>}
                     {m.purpose && <span>· {m.purpose}</span>}
                     {m.stock != null && <span className={m.stock <= 5 ? 'font-semibold text-amber-600' : ''}>· {m.stock} left</span>}

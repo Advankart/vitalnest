@@ -3,11 +3,11 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format as fmtLocal } from 'date-fns';
 import { enUS } from 'date-fns/locale';
-import { t } from './i18n';
+import { t, tDose } from './i18n';
 /** Doctor files (PDF / Excel) stay in English — PDF fonts can't shape Tamil script. */
 const format = (d: Date | number, f: string) => fmtLocal(d, f, { locale: enUS });
 import type { Meal, Medicine, MedicineLog, Patient, Vital, WaterLog } from './types';
-import { adherence, age, bmi, classify, CONDITIONS, ctxLabel, dayKey, eA1c, FOOD_REL, fmtVital, STATUS_STYLE, stats, timeInRange, to12h, VITALS } from './health';
+import { timesWithDose, adherence, age, bmi, classify, CONDITIONS, ctxLabel, dayKey, eA1c, FOOD_REL, fmtVital, STATUS_STYLE, stats, timeInRange, to12h, VITALS } from './health';
 
 export interface ExportData { vitals: Vital[]; meals: Meal[]; water: WaterLog[]; meds: Medicine[]; medLogs: MedicineLog[] }
 
@@ -101,7 +101,7 @@ export function toExcel(p: Patient, d: ExportData, from: Date, to: Date): Blob {
   add('All vitals', vitalRows(p, d.vitals), [12, 10, 16, 10, 8, 7, 16, 11, 30]);
   add('Blood sugar', d.vitals.filter(v => v.kind === 'glucose').map(v => ({ Date: format(new Date(v.measured_at), 'dd-MM-yyyy'), Time: format(new Date(v.measured_at), 'hh:mm a'), 'mg/dL': Number(v.value1), When: ctxLabel(v.context), Status: STATUS_STYLE[classify(v, p)].label, Notes: v.notes ?? '' })), [12, 10, 8, 16, 11, 30]);
   add('Blood pressure', d.vitals.filter(v => v.kind === 'bp').map(v => ({ Date: format(new Date(v.measured_at), 'dd-MM-yyyy'), Time: format(new Date(v.measured_at), 'hh:mm a'), Systolic: Number(v.value1), Diastolic: Number(v.value2), Pulse: v.value3 ?? '', Status: STATUS_STYLE[classify(v, p)].label })), [12, 10, 9, 9, 7, 11]);
-  add('Medicines', d.meds.map(m => ({ Medicine: m.name, Strength: m.strength ?? '', Composition: m.composition ?? '', Dose: m.dose ?? '', Times: m.times.map(to12h).join(', '), Take: FOOD_REL[m.food_relation ?? ''] ?? '', For: m.purpose ?? '', Active: m.active ? 'Yes' : 'No', 'Stock left': m.stock ?? '' })), [24, 12, 14, 24, 14, 16, 7, 9]);
+  add('Medicines', d.meds.map(m => ({ Medicine: m.name, Strength: m.strength ?? '', Composition: m.composition ?? '', Dose: m.dose ?? '', Times: timesWithDose(m), Take: FOOD_REL[m.food_relation ?? ''] ?? '', For: m.purpose ?? '', Active: m.active ? 'Yes' : 'No', 'Stock left': m.stock ?? '' })), [24, 12, 14, 24, 14, 16, 7, 9]);
   add('Medicine log', d.medLogs.map(l => ({ Date: l.scheduled_date, Time: to12h(l.scheduled_time), Medicine: d.meds.find(m => m.id === l.medicine_id)?.name ?? '', Status: l.status })), [12, 10, 24, 8]);
   add('Food', d.meals.flatMap(m => m.items.map(it => ({ Date: format(new Date(m.eaten_at), 'dd-MM-yyyy'), Time: format(new Date(m.eaten_at), 'hh:mm a'), Meal: m.meal_type, Food: it.name, Qty: it.qty, Unit: it.unit, Calories: Math.round(it.kcal), 'Carbs (g)': it.carbs, 'Protein (g)': it.protein }))), [12, 10, 10, 28, 5, 10, 9, 9, 10]);
   const waterByDay: Record<string, number> = {};
@@ -180,7 +180,7 @@ export function toPDF(p: Patient, d: ExportData, from: Date, to: Date, charts: {
     autoTable(doc, { startY: y + 8, head: [head], body, theme: 'grid', headStyles: { fillColor: teal, fontSize: 9 }, styles: { fontSize: 8.5, cellPadding: 4 }, alternateRowStyles: { fillColor: [248, 250, 252] }, margin: { left: M, right: M } });
     y = (doc as any).lastAutoTable.finalY + 22;
   };
-  sectionTable('Current medicines', ['Medicine', 'Strength', 'Composition', 'Dose', 'Times', 'Take', 'For'], d.meds.filter(m => m.active).map(m => [m.name, m.strength ?? '', m.composition ?? '', m.dose ?? '', m.times.map(to12h).join(', '), FOOD_REL[m.food_relation ?? ''] ?? '', m.purpose ?? '']));
+  sectionTable('Current medicines', ['Medicine', 'Strength', 'Composition', 'Dose', 'Times', 'Take', 'For'], d.meds.filter(m => m.active).map(m => [m.name, m.strength ?? '', m.composition ?? '', m.dose ?? '', timesWithDose(m), FOOD_REL[m.food_relation ?? ''] ?? '', m.purpose ?? '']));
   sectionTable('Blood sugar readings', ['Date', 'Time', 'mg/dL', 'When', 'Status', 'Notes'], d.vitals.filter(v => v.kind === 'glucose').slice(-150).reverse().map(v => [format(new Date(v.measured_at), 'dd MMM'), format(new Date(v.measured_at), 'h:mm a'), Math.round(v.value1), ctxLabel(v.context), STATUS_STYLE[classify(v, p)].label, v.notes ?? '']));
   sectionTable('Blood pressure readings', ['Date', 'Time', 'BP (mmHg)', 'Pulse', 'Status'], d.vitals.filter(v => v.kind === 'bp').slice(-120).reverse().map(v => [format(new Date(v.measured_at), 'dd MMM'), format(new Date(v.measured_at), 'h:mm a'), `${Math.round(v.value1)}/${Math.round(Number(v.value2))}`, v.value3 ? Math.round(v.value3) : '', STATUS_STYLE[classify(v, p)].label]));
   sectionTable('Other vitals', ['Date', 'Time', 'Type', 'Reading', 'Status'], d.vitals.filter(v => !['glucose', 'bp'].includes(v.kind)).slice(-120).reverse().map(v => [format(new Date(v.measured_at), 'dd MMM'), format(new Date(v.measured_at), 'h:mm a'), VITALS[v.kind].label, `${fmtVital(v)} ${VITALS[v.kind].unit}`, STATUS_STYLE[classify(v, p)].label]));
@@ -235,7 +235,7 @@ export function summaryText(p: Patient, d: ExportData, days: number): string {
     L.push('');
     L.push(t('💊 *Current medicines*'));
     const DN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    for (const m of active) L.push(`• *${m.name}*${m.strength ? ` ${m.strength}` : ''}${m.dose ? ` — ${m.dose}` : ''} · ${m.times.map(to12h).join(', ')}${m.food_relation ? ` · ${t(FOOD_REL[m.food_relation] ?? '')}` : ''}${m.days?.length && m.days.length < 7 ? ` · ${m.days.map(x => t(DN[x])).join('/')}` : ''}`);
+    for (const m of active) L.push(`• *${m.name}*${m.strength ? ` ${m.strength}` : ''}${m.dose ? ` — ${tDose(m.dose)}` : ''} · ${timesWithDose(m, tDose)}${m.food_relation ? ` · ${t(FOOD_REL[m.food_relation] ?? '')}` : ''}${m.days?.length && m.days.length < 7 ? ` · ${m.days.map(x => t(DN[x])).join('/')}` : ''}`);
   }
   if (s.kcal) L.push(t('🍽️ Avg calories: {v} kcal/day', { v: Math.round(s.kcal) }));
   if (s.water) L.push(t('💧 Avg water: {v} L/day', { v: (s.water / 1000).toFixed(1) }));

@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { t } from '../lib/i18n';
 import { useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Camera, ExternalLink, FileImage, FileText, Trash2, Upload } from 'lucide-react';
+import { Camera, ChevronLeft, ChevronRight, ExternalLink, FileImage, FileText, Trash2, Upload, X } from 'lucide-react';
+import { toJpegBlob } from '../lib/scan';
 import { Browser } from '@capacitor/browser';
 import { useApp } from '../lib/store';
 import { api } from '../lib/api';
@@ -80,39 +81,110 @@ export default function Reports() {
 
 function UploadForm({ onDone }: { onDone: () => void }) {
   const { patient, toast } = useApp();
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
   const [title, setTitle] = useState('');
   const [cat, setCat] = useState('lab');
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [notes, setNotes] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<string | false>(false);
   const fileRef = useRef<HTMLInputElement>(null), camRef = useRef<HTMLInputElement>(null);
 
-  const pick = (f?: File | null) => { if (!f) return; if (f.size > 20 * 1024 * 1024) { toast('File is larger than 20 MB', 'err'); return; } setFile(f); if (!title) setTitle(f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ')); };
+  useEffect(() => {
+    const urls = files.map(f => (f.type.startsWith('image/') ? URL.createObjectURL(f) : ''));
+    setPreviews(urls);
+    return () => urls.forEach(u => u && URL.revokeObjectURL(u));
+  }, [files]);
 
-  async function upload() {
-    if (!file) return;
-    setBusy(true);
-    try { await api().uploadReport(patient!.id, file, { title: title || file.name, category: cat, report_date: date, notes: notes || null }); toast('Report uploaded'); onDone(); }
-    catch (e) { toast((e as Error).message, 'err'); } finally { setBusy(false); }
+  const add = (list?: FileList | null) => {
+    const picked = [...(list ?? [])].filter(f => {
+      if (f.size > 20 * 1024 * 1024) { toast('File is larger than 20 MB', 'err'); return false; }
+      return true;
+    });
+    if (!picked.length) return;
+    setFiles(fs => [...fs, ...picked].slice(0, 20));
+    if (!title) setTitle(picked[0].name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').replace(/^(IMG|PXL|image)\s?\d*.*/i, ''));
+  };
+  const removeAt = (i: number) => setFiles(fs => fs.filter((_, j) => j !== i));
+  const move = (i: number, d: -1 | 1) => setFiles(fs => { const n = [...fs]; const j = i + d; if (j < 0 || j >= n.length) return fs; [n[i], n[j]] = [n[j], n[i]]; return n; });
+
+  /** Several photos → one PDF report (one page per photo), so the family sees all pages together. */
+  async function photosToPdf(imgs: File[]): Promise<File> {
+    const { jsPDF } = await import('jspdf');
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), M = 18;
+    for (const [i, f] of imgs.entries()) {
+      setBusy(t('Preparing page {n} of {m}…', { n: i + 1, m: imgs.length }));
+      const blob = await toJpegBlob(f, 2000);
+      const url = await new Promise<string>(res => { const r = new FileReader(); r.onload = () => res(r.result as string); r.readAsDataURL(blob); });
+      const img = await new Promise<HTMLImageElement>((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = url; });
+      const k = Math.min((W - 2 * M) / img.width, (H - 2 * M) / img.height);
+      if (i > 0) doc.addPage();
+      doc.addImage(url, 'JPEG', (W - img.width * k) / 2, (H - img.height * k) / 2, img.width * k, img.height * k);
+    }
+    const name = (title || 'Report').replace(/[^\w\s-]+/g, '').trim().replace(/\s+/g, '_') || 'Report';
+    return new File([doc.output('blob')], `${name}.pdf`, { type: 'application/pdf' });
   }
 
+  async function upload() {
+    if (!files.length) return;
+    setBusy(t('Uploading…'));
+    try {
+      const meta = { title: title || files[0].name, category: cat, report_date: date, notes: notes || null };
+      const imgs = files.filter(f => f.type.startsWith('image/')), others = files.filter(f => !f.type.startsWith('image/'));
+      if (imgs.length > 1) {
+        const pdf = await photosToPdf(imgs);
+        setBusy(t('Uploading…'));
+        await api().uploadReport(patient!.id, pdf, { ...meta, notes: [notes, t('{n} pages', { n: imgs.length })].filter(Boolean).join(' · ') });
+      } else if (imgs.length === 1) {
+        await api().uploadReport(patient!.id, imgs[0], meta);
+      }
+      for (const [i, f] of others.entries()) {
+        await api().uploadReport(patient!.id, f, others.length > 1 || imgs.length ? { ...meta, title: `${meta.title} (${i + 1 + (imgs.length ? 1 : 0)})` } : meta);
+      }
+      toast('Report uploaded'); onDone();
+    } catch (e) { toast((e as Error).message, 'err'); } finally { setBusy(false); }
+  }
+
+  const tile = 'flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-slate-200 p-5 text-sm font-semibold text-slate-600 dark:border-white/10 dark:text-slate-300';
   return (
     <div className="space-y-4">
-      <input ref={fileRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={e => pick(e.target.files?.[0])} />
-      <input ref={camRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={e => pick(e.target.files?.[0])} />
+      <input ref={fileRef} type="file" accept="image/*,application/pdf" multiple className="hidden" onChange={e => { add(e.target.files); e.target.value = ''; }} />
+      <input ref={camRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { add(e.target.files); e.target.value = ''; }} />
       <div className="grid grid-cols-2 gap-3">
-        <button onClick={() => camRef.current?.click()} className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-slate-200 p-5 text-sm font-semibold text-slate-600 dark:border-white/10 dark:text-slate-300"><Camera className="h-7 w-7 text-brand-600" />Take photo</button>
-        <button onClick={() => fileRef.current?.click()} className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-slate-200 p-5 text-sm font-semibold text-slate-600 dark:border-white/10 dark:text-slate-300"><Upload className="h-7 w-7 text-brand-600" />Choose file / PDF</button>
+        <button onClick={() => camRef.current?.click()} className={tile}><Camera className="h-7 w-7 text-brand-600" />{files.length ? 'Take another photo' : 'Take photo'}</button>
+        <button onClick={() => fileRef.current?.click()} className={tile}><Upload className="h-7 w-7 text-brand-600" />{files.length ? 'Add more files' : 'Choose files / PDF'}</button>
       </div>
-      {file && <div className="rounded-2xl bg-brand-50 px-4 py-3 text-sm text-brand-800 dark:bg-brand-500/10 dark:text-brand-200">{file.name} · {(file.size / 1024 / 1024).toFixed(2)} MB</div>}
+      {files.length > 0 && (
+        <div>
+          <div className="mb-2 flex items-baseline justify-between px-1">
+            <span className="text-sm font-bold">{t(files.length === 1 ? '{n} page' : '{n} pages', { n: files.length })}</span>
+            {files.filter(f => f.type.startsWith('image/')).length > 1 && <span className="text-[0.75rem] text-slate-500">Photos are joined into one PDF</span>}
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {files.map((f, i) => (
+              <div key={i} className="relative overflow-hidden rounded-2xl bg-slate-100 ring-1 ring-slate-900/5 dark:bg-white/5">
+                {previews[i] ? <img src={previews[i]} alt="" className="aspect-[3/4] w-full object-cover" /> : <div className="grid aspect-[3/4] place-items-center p-2 text-center text-[0.6875rem] text-slate-500"><FileText className="mx-auto h-7 w-7 text-red-500" />{f.name}</div>}
+                <span className="absolute left-1.5 top-1.5 rounded-full bg-black/60 px-2 text-[0.6875rem] font-bold text-white">{i + 1}</span>
+                <button onClick={() => removeAt(i)} aria-label="Remove" className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-black/60 text-white"><X className="h-4 w-4" /></button>
+                {files.length > 1 && (
+                  <div className="absolute inset-x-1.5 bottom-1.5 flex justify-between">
+                    <button onClick={() => move(i, -1)} disabled={i === 0} aria-label="Move earlier" className="grid h-7 w-7 place-items-center rounded-full bg-black/60 text-white disabled:opacity-0"><ChevronLeft className="h-4 w-4" /></button>
+                    <button onClick={() => move(i, 1)} disabled={i === files.length - 1} aria-label="Move later" className="grid h-7 w-7 place-items-center rounded-full bg-black/60 text-white disabled:opacity-0"><ChevronRight className="h-4 w-4" /></button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       <Field label="Title"><input className="field" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. HbA1c & lipid profile" /></Field>
       <Field label="Type"><ChipSelect value={cat} onChange={setCat} options={CATS} /></Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Report date"><input type="date" className="field" value={date} onChange={e => setDate(e.target.value)} /></Field>
         <Field label="Notes"><input className="field" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Lab / doctor" /></Field>
       </div>
-      <Button block size="lg" loading={busy} disabled={!file} onClick={upload}>Upload</Button>
+      <Button block size="lg" loading={!!busy} disabled={!files.length} onClick={upload}>{busy || 'Upload'}</Button>
     </div>
   );
 }

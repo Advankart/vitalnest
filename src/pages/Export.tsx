@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
-import { t as tr } from '../lib/i18n';
+import { t as tr, tDose } from '../lib/i18n';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { toPng } from 'html-to-image';
 import { FileSpreadsheet, FileText, Image as ImageIcon, MessageCircle, Printer, Sheet as SheetIcon, Download } from 'lucide-react';
@@ -10,7 +10,7 @@ import { applyInclude, filterRange, INCLUDE_OPTIONS, summarize, summaryText, toC
 import { useSearchParams } from 'react-router-dom';
 import { Check } from 'lucide-react';
 import { saveFile, shareFile, shareText } from '../lib/share';
-import { CONDITIONS, age, to12h } from '../lib/health';
+import { CONDITIONS, age, timesWithDose } from '../lib/health';
 import type { Patient } from '../lib/types';
 import { BPChart, GlucoseChart, SimpleLine } from '../components/Charts';
 import { Button, Field, PageHeader, Segmented } from '../components/ui';
@@ -66,7 +66,7 @@ const ShareCard = forwardRef<HTMLDivElement, { p: Patient; d: ExportData; days: 
             {d.meds.filter(m => m.active).slice(0, 8).map(m => (
               <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 12, padding: '3px 0', borderTop: '1px solid #f3e8ff' }}>
                 <span style={{ fontWeight: 700 }}>{m.name} <span style={{ fontWeight: 400, color: '#64748b' }}>{m.strength}</span></span>
-                <span style={{ color: '#64748b', whiteSpace: 'nowrap' }}>{m.times.map(to12h).join(', ')}</span>
+                <span style={{ color: '#64748b', whiteSpace: 'nowrap' }}>{timesWithDose(m, tDose)}</span>
               </div>
             ))}
           </div>

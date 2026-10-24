@@ -165,6 +165,22 @@ export const AVATAR_COLORS = ['#0f766e', '#7c3aed', '#e11d48', '#ea580c', '#2563
 export const FOOD_REL: Record<string, string> = {
   before_food: 'Before food', after_food: 'After food', with_food: 'With food', empty_stomach: 'Empty stomach', any: 'Any time',
 };
+/** Dose for one scheduled time (falls back to the usual dose). */
+export const doseFor = (m: Pick<Medicine, 'dose' | 'dose_by_time'>, time: string) => (m.dose_by_time?.[time] || m.dose || '').trim();
+/** How many tablets/capsules a dose text means ("2 tablets" → 2, "½ tablet" → 0.5). Defaults to 1. */
+export function doseQty(dose: string): number {
+  const s = dose.trim().replace(/^half\b/i, '½').replace(/(^|\s)1\/2\b/, '$1½').replace(/(^|\s)1\/4\b/, '$1¼').replace(/(^|\s)3\/4\b/, '$1¾');
+  const m = s.match(/^(\d+(?:\.\d+)?)?\s*(½|1\/2|¼|1\/4|¾|3\/4)?/);
+  const whole = m?.[1] ? parseFloat(m[1]) : 0;
+  const frac = m?.[2] ? ({ '½': .5, '1/2': .5, '¼': .25, '1/4': .25, '¾': .75, '3/4': .75 } as Record<string, number>)[m[2]] : 0;
+  return whole + frac || 1;
+}
+/** "8:00 AM (1 tablet), 9:00 PM (2 tablets)" when doses differ, else "8:00 AM, 9:00 PM". */
+export function timesWithDose(m: Pick<Medicine, 'times' | 'dose' | 'dose_by_time'>, tr: (s: string) => string = s => s) {
+  const differs = m.times.some(t => m.dose_by_time?.[t] && m.dose_by_time[t] !== m.dose);
+  return m.times.map(t => differs ? `${to12h(t)} (${tr(doseFor(m, t))})` : to12h(t)).join(', ');
+}
+
 export const MED_FORMS = ['tablet', 'capsule', 'insulin', 'injection', 'syrup', 'inhaler', 'drops', 'other'];
 
 export const dayKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;

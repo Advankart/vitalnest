@@ -1,9 +1,9 @@
 import { Capacitor } from '@capacitor/core';
-import { t as tr } from './i18n';
+import { t as tr, tDose } from './i18n';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { api } from './api';
 import type { Medicine, Patient, Reminder } from './types';
-import { dayKey, hhmm, VITALS } from './health';
+import { dayKey, doseFor, FOOD_REL, hhmm, VITALS } from './health';
 
 export const isNative = () => Capacitor.isNativePlatform();
 
@@ -38,7 +38,7 @@ function buildSlots(patients: Patient[], meds: Medicine[], rems: Reminder[]): Sl
       out.push({
         key: `med:${m.id}:${t}`, time: t, days: m.days?.length ? m.days : [0, 1, 2, 3, 4, 5, 6],
         title: `💊 ${who(m.patient_id)}${tr('Time for {name}', { name: m.name })}`,
-        body: [m.dose, m.strength, m.food_relation ? m.food_relation.replace('_', ' ') : ''].filter(Boolean).join(' · '),
+        body: [tDose(doseFor(m, t)), m.strength, m.food_relation ? tr(FOOD_REL[m.food_relation] ?? '') : ''].filter(Boolean).join(' · '),
         extra: { type: 'med', medicine_id: m.id, patient_id: m.patient_id, time: t },
       });
     }

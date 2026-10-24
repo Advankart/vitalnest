@@ -1,8 +1,8 @@
 import { format } from 'date-fns';
 import type { Patient } from './types';
 import { type ExportData, summarize } from './export';
-import { age, bmi, classify, CONDITIONS, ctxLabel, FOOD_REL, fmtVital, STATUS_STYLE, to12h, VITALS } from './health';
-import { isTamil, lang, t } from './i18n';
+import { timesWithDose, age, bmi, classify, CONDITIONS, ctxLabel, FOOD_REL, fmtVital, STATUS_STYLE, to12h, VITALS } from './health';
+import { isTamil, lang, t, tDose } from './i18n';
 
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 
@@ -47,7 +47,7 @@ export function reportHtml(p: Patient, d: ExportData, from: Date, to: Date, char
   ${s.hypos ? `<p class="warn">${esc(t(s.hypos > 1 ? '{n} low sugar readings (below 70) this period' : '{n} low sugar reading (below 70) this period', { n: s.hypos }))}</p>` : ''}
   ${charts.map(c => `<div class="chart"><h2>${esc(t(c.title))}</h2><img src="${c.img}" alt=""></div>`).join('')}
   ${table(t('Current medicines'), [t('Medicine'), t('Strength'), t('Dose'), t('Times'), t('Take'), t('For')],
-    d.meds.filter(m => m.active).map(m => [m.name + (m.composition ? ` (${m.composition})` : ''), m.strength ?? '', m.dose ?? '', m.times.map(to12h).join(', '), t(FOOD_REL[m.food_relation ?? ''] ?? ''), m.purpose ?? '']))}
+    d.meds.filter(m => m.active).map(m => [m.name + (m.composition ? ` (${m.composition})` : ''), m.strength ?? '', tDose(m.dose), timesWithDose(m, tDose), t(FOOD_REL[m.food_relation ?? ''] ?? ''), m.purpose ?? '']))}
   ${table(t('Blood sugar readings'), [t('Date'), t('Time'), 'mg/dL', t('When'), t('Status'), t('Notes')],
     d.vitals.filter(v => v.kind === 'glucose').slice(-200).reverse().map(v => [dt(v.measured_at), tm(v.measured_at), Math.round(v.value1), t(ctxLabel(v.context)), st(v), v.notes ?? '']))}
   ${table(t('Blood pressure readings'), [t('Date'), t('Time'), 'BP (mmHg)', t('Pulse'), t('Status')],

@@ -80,6 +80,8 @@ export interface Medicine {
   strength?: string | null;
   form: string;
   dose?: string | null;
+  /** Different dose per time, e.g. { "08:00": "1 tablet", "21:00": "2 tablets" } */
+  dose_by_time?: Record<string, string> | null;
   food_relation?: string | null;
   times: string[];
   days: number[];

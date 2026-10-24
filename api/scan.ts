@@ -91,7 +91,7 @@ Step 2 – return one entry per medicine in "medicines". For each:
 • form: tablet / capsule / insulin / injection / syrup / inhaler / drops / other (from Tab./Cap./Inj. etc.).
 • dose: amount per time, e.g. "1 tablet", "½ tablet", "10 units", "5 ml".
 • slots: which of morning / afternoon / night. Indian notation "1-0-1" = morning + night, "1-1-1" = all three, "0-0-1" = night, "1-0-0" = morning, "½-0-½" likewise. OD = morning (unless HS/night is written), BD/BID = morning + night, TDS/TID = morning + afternoon + night, QID = all three, HS = night. SOS/PRN = as needed → empty slots and as_needed=true.
-• For insulin with different units per time (e.g. "12-0-8 units"), write the units per time in dose, like "12 units morning, 8 units night".
+• If the amount differs by time (e.g. "1-0-2" = 1 tablet morning, 2 tablets night; insulin "12-0-8 units"), fill slot_doses for each slot, e.g. {"morning":"1 tablet","night":"2 tablets"}, and put the most common amount in dose.
 • food_relation: before_food (AC / before meals), empty_stomach, after_food (PC / after meals), with_food, or any.
 • duration_days: number of days if written ("x 30 days", "1 month" = 30, "continue" = null).
 • notes: anything else for that medicine (e.g. "only if sugar > 250", "alternate days").
@@ -113,6 +113,7 @@ Never invent medicines. If a line is hard to read, include your best reading wit
               strength: { type: ['string', 'null'] },
               form: { type: 'string', enum: ['tablet', 'capsule', 'insulin', 'injection', 'syrup', 'inhaler', 'drops', 'other'] },
               dose: { type: ['string', 'null'] },
+              slot_doses: { type: ['object', 'null'], properties: { morning: { type: 'string' }, afternoon: { type: 'string' }, night: { type: 'string' } }, description: 'Only when the amount differs by time' },
               slots: { type: 'array', items: { type: 'string', enum: ['morning', 'afternoon', 'night'] } },
               as_needed: { type: 'boolean' },
               food_relation: { type: 'string', enum: ['before_food', 'after_food', 'with_food', 'empty_stomach', 'any'] },

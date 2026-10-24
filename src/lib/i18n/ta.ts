@@ -312,4 +312,9 @@ export const TA: Record<string, string> = {
   'Lab': 'ஆய்வகம்', 'Scan': 'ஸ்கேன்', 'Discharge': 'டிஸ்சார்ஜ்',
   'Something went wrong on this screen': 'இந்தத் திரையில் ஏதோ தவறு நடந்தது', 'Your data is safe. Go back or reload the app.': 'உங்கள் தரவு பாதுகாப்பாக உள்ளது. பின்செல்லுங்கள் அல்லது செயலியை மீண்டும் திறங்கள்.',
   'Reload': 'மீண்டும் ஏற்று', 'AI answer was incomplete — please try again.': 'AI பதில் முழுமையாக வரவில்லை — மீண்டும் முயற்சி செய்யுங்கள்.',
+  'Usual dose': 'வழக்கமான அளவு', 'Dose at {time}': '{time} அளவு',
+  'Different amount at a time? Type it next to that time (e.g. 2 tablets at night). Leave empty to use the usual dose.': 'ஒரு நேரத்தில் அளவு வேறுபடுமா? அந்த நேரத்தின் அருகில் எழுதுங்கள் (எ.கா. இரவு 2 மாத்திரை). காலியாக விட்டால் வழக்கமான அளவு எடுத்துக்கொள்ளப்படும்.',
+  'Preparing page {n} of {m}…': '{m}-இல் {n} பக்கம் தயாராகிறது…', 'Uploading…': 'பதிவேற்றுகிறது…', '{n} pages': '{n} பக்கங்கள்', '{n} page': '{n} பக்கம்',
+  'Take another photo': 'இன்னொரு படம் எடு', 'Add more files': 'மேலும் கோப்புகள் சேர்', 'Choose files / PDF': 'கோப்புகள் / PDF தேர்ந்தெடு',
+  'Photos are joined into one PDF': 'படங்கள் ஒரே PDF-ஆக இணைக்கப்படும்', 'Move earlier': 'முன்னே நகர்த்து', 'Move later': 'பின்னே நகர்த்து',
 };
