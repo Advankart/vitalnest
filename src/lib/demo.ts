@@ -196,6 +196,17 @@ export function demoApi(): Api {
       const rep = { id: uid(), patient_id: pid, file_path: path, file_name: file.name, mime_type: file.type, size_bytes: file.size, created_at: new Date().toISOString(), ...meta } as Report;
       db.tables.reports.push(rep); save(); return rep;
     },
+    async uploadReportGroup(pid, files, meta, onProgress) {
+      const db = load(); const att = [];
+      for (const [i, file] of files.entries()) {
+        onProgress?.(i);
+        const path = `${pid}/${Date.now()}-${i + 1}-${file.name}`;
+        if (file.size < 1.5e6) db.files[path] = await new Promise<string>(res => { const fr = new FileReader(); fr.onload = () => res(fr.result as string); fr.readAsDataURL(file); });
+        att.push({ path, name: file.name, mime: file.type, size: file.size });
+      }
+      const rep = { id: uid(), patient_id: pid, file_path: att[0].path, file_name: att[0].name, mime_type: att[0].mime, size_bytes: att.reduce((n, a) => n + a.size, 0), attachments: att, created_at: new Date().toISOString(), ...meta } as Report;
+      db.tables.reports.push(rep); save(); return rep;
+    },
     async reportUrl(r) { const u = load().files[r.file_path]; if (!u) throw new Error('In demo mode only files under 1.5 MB are kept.'); return u; },
     async deleteReport(r) { const db = load(); delete db.files[r.file_path]; db.tables.reports = db.tables.reports.filter(x => x.id !== r.id); save(); },
 

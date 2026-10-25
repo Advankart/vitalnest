@@ -127,10 +127,14 @@ export interface Report {
   mime_type?: string | null;
   size_bytes?: number | null;
   notes?: string | null;
+  /** Several files in one report (e.g. videos of one scan). The first one is also file_path. */
+  attachments?: ReportFile[] | null;
   /** AI summary per language, made once and reused */
   ai_summary?: Partial<Record<'en' | 'ta', ReportSummary>> | null;
   created_at?: string;
 }
+
+export interface ReportFile { path: string; name: string; mime: string; size: number }
 
 export interface ReportSummary {
   readable: boolean;

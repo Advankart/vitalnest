@@ -347,4 +347,6 @@ export const TA: Record<string, string> = {
   'Record video': 'வீடியோ பதிவு', 'Choose files / PDF / video': 'கோப்பு / PDF / வீடியோ தேர்ந்தெடு', '{n} file': '{n} கோப்பு', '{n} files': '{n} கோப்புகள்',
   'Video is larger than 50 MB — record a shorter clip or trim it first': 'வீடியோ 50 MB-க்கு மேல் உள்ளது — சிறிய வீடியோ எடுங்கள் அல்லது முதலில் வெட்டுங்கள்',
   'Uploading video… this can take a minute': 'வீடியோ பதிவேற்றுகிறது… ஒரு நிமிடம் ஆகலாம்',
+  '1 photo': '1 படம்', '1 video': '1 வீடியோ', '{n} videos': '{n} வீடியோக்கள்', '1 PDF': '1 PDF', '{n} PDFs': '{n} PDF-கள்',
+  'Uploading file {n} of {m}…': '{m}-இல் {n} கோப்பு பதிவேற்றுகிறது…', 'All saved together as one report': 'அனைத்தும் ஒரே அறிக்கையாகச் சேமிக்கப்படும்', 'Video': 'வீடியோ', 'Photo': 'படம்',
 };

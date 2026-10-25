@@ -10,7 +10,8 @@ import { Browser } from '@capacitor/browser';
 import { useApp } from '../lib/store';
 import { api } from '../lib/api';
 import { isNative } from '../lib/notify';
-import type { Report } from '../lib/types';
+import type { Report, ReportFile } from '../lib/types';
+import { photoUrl } from '../components/MedPhoto';
 import { Button, ChipSelect, Empty, Field, PageHeader, Segmented, Sheet, Spinner, ViewOnlyNote } from '../components/ui';
 
 const CATS = [{ id: 'lab', label: 'Lab test' }, { id: 'prescription', label: 'Prescription' }, { id: 'scan', label: 'Scan / ECG / Echo' }, { id: 'discharge', label: 'Discharge summary' }, { id: 'other', label: 'Other' }];
@@ -52,12 +53,13 @@ export default function Reports() {
           {shown.map(r => (
             <button key={r.id} onClick={() => openReport(r)} className="card flex w-full items-center gap-3 p-4 text-left">
               <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-slate-100 text-slate-600 dark:bg-white/5 dark:text-slate-300">
-                {r.mime_type?.startsWith('image/') ? <FileImage className="h-6 w-6" /> : r.mime_type?.startsWith('video/') ? <FileVideo className="h-6 w-6 text-sky-600" /> : <FileText className="h-6 w-6" />}
+                {r.attachments?.some(x => x.mime.startsWith('video/')) ? <FileVideo className="h-6 w-6 text-sky-600" /> : r.mime_type?.startsWith('image/') ? <FileImage className="h-6 w-6" /> : r.mime_type?.startsWith('video/') ? <FileVideo className="h-6 w-6 text-sky-600" /> : <FileText className="h-6 w-6" />}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="truncate font-semibold">{r.title}</div>
                 <div className="truncate text-xs text-slate-500">{CATS.find(c => c.id === r.category)?.label} · {r.report_date ? format(new Date(r.report_date), 'd MMM yyyy') : ''}{r.size_bytes ? ` · ${(r.size_bytes / 1024 / 1024).toFixed(1)} MB` : ''}</div>
                 {r.notes && <div className="truncate text-xs text-slate-400">{r.notes}</div>}
+                {(r.attachments?.length ?? 0) > 1 && <div className="mt-0.5 mr-1 inline-flex items-center gap-1 rounded-full bg-sky-50 px-2 py-0.5 text-[0.6875rem] font-semibold text-sky-700 dark:bg-sky-500/10 dark:text-sky-300"><FileVideo className="h-3 w-3" />{t('{n} files', { n: r.attachments!.length })}</div>}
                 {savedSummary(r) && <div className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5 text-[0.6875rem] font-semibold text-violet-700 dark:bg-violet-500/10 dark:text-violet-300"><Sparkles className="h-3 w-3" />AI summary ready</div>}
               </div>
               <ExternalLink className="h-4 w-4 text-slate-300" />
@@ -71,14 +73,45 @@ export default function Reports() {
       <Sheet open={!!view} onClose={() => setView(null)} title={view?.r.title}>
         {view && <div className="space-y-4">
           <ReportSummaryView key={view.r.id} report={view.r} onSaved={savedR} />
+          {(view.r.attachments?.length ?? 0) > 1 ? <Attachments files={view.r.attachments!} /> : <>
           {view.r.mime_type?.startsWith('image/') && view.url && <img src={view.url} alt={view.r.title} className="w-full rounded-2xl" />}
           {view.r.mime_type?.startsWith('video/') && view.url && <video src={view.url} controls playsInline preload="metadata" className="max-h-[60vh] w-full rounded-2xl bg-black" />}
+          </>}
           <div className="flex gap-2">
             <Button variant="soft" className="flex-1" disabled={!view.url} onClick={() => openOriginal(view.url)}><ExternalLink className="h-4 w-4" />{view.r.mime_type?.startsWith('image/') ? 'Open full size' : 'Open original report'}</Button>
             {canEdit && <Button variant="danger" onClick={() => del(view.r)}><Trash2 className="h-4 w-4" /></Button>}
           </div>
         </div>}
       </Sheet>
+    </div>
+  );
+}
+
+/** All files of a grouped report: videos play inline, photos show, PDFs open. */
+function Attachments({ files }: { files: ReportFile[] }) {
+  return (
+    <div className="space-y-3">
+      {files.map((f, i) => <AttachmentItem key={f.path} f={f} n={i + 1} />)}
+    </div>
+  );
+}
+function AttachmentItem({ f, n }: { f: ReportFile; n: number }) {
+  const { toast } = useApp();
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => { let live = true; photoUrl(f.path).then(u => live && setUrl(u)).catch(e => toast((e as Error).message, 'err')); return () => { live = false; }; }, [f.path]); // eslint-disable-line
+  const isVid = f.mime.startsWith('video/'), isImg = f.mime.startsWith('image/');
+  const open = () => { if (!url) return; if (isNative()) Browser.open({ url }); else window.open(url, '_blank', 'noopener'); };
+  return (
+    <div className="rounded-2xl bg-slate-50 p-2 dark:bg-white/[.03]">
+      <div className="mb-1.5 flex items-center gap-2 px-1 text-[0.75rem] font-semibold text-slate-500">
+        <span className="grid h-5 w-5 place-items-center rounded-full bg-slate-200 text-[0.6875rem] text-slate-700 dark:bg-white/10 dark:text-slate-200">{n}</span>
+        <span className="min-w-0 flex-1 truncate">{isVid ? t('Video') : isImg ? t('Photo') : 'PDF'} · {(f.size / 1024 / 1024).toFixed(1)} MB</span>
+        {!isVid && <button onClick={open} className="text-brand-600 dark:text-brand-300">{t('Open')}</button>}
+      </div>
+      {!url ? <div className="grid h-32 place-items-center"><Spinner /></div>
+        : isVid ? <video src={url} controls playsInline preload="metadata" className="max-h-[55vh] w-full rounded-xl bg-black" />
+        : isImg ? <img src={url} alt="" className="w-full rounded-xl" />
+        : <button onClick={open} className="flex w-full items-center gap-3 rounded-xl bg-white p-3 text-left dark:bg-night-3"><FileText className="h-7 w-7 text-red-500" /><span className="min-w-0 flex-1 truncate text-sm font-semibold">{f.name}</span><ExternalLink className="h-4 w-4 text-slate-400" /></button>}
     </div>
   );
 }
@@ -137,17 +170,21 @@ function UploadForm({ onDone }: { onDone: () => void }) {
     try {
       const meta = { title: title || files[0].name, category: cat, report_date: date, notes: notes || null };
       const imgs = files.filter(f => f.type.startsWith('image/')), others = files.filter(f => !f.type.startsWith('image/'));
-      if (imgs.length > 1) {
-        const pdf = await photosToPdf(imgs);
-        setBusy(t('Uploading…'));
-        await api().uploadReport(patient!.id, pdf, { ...meta, notes: [notes, t('{n} pages', { n: imgs.length })].filter(Boolean).join(' · ') });
-      } else if (imgs.length === 1) {
+      // photos → one PDF (or one picture); videos & PDFs stay as they are — all kept together in ONE report
+      const parts: File[] = [];
+      if (imgs.length > 1) parts.push(await photosToPdf(imgs));
+      else if (imgs.length === 1) {
         const f = imgs[0];
-        const small = f.size > 1.5 * 1024 * 1024 ? new File([await toJpegBlob(f, 2400)], f.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' }) : f;
-        await api().uploadReport(patient!.id, small, meta);
+        parts.push(f.size > 1.5 * 1024 * 1024 ? new File([await toJpegBlob(f, 2400)], f.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' }) : f);
       }
-      for (const [i, f] of others.entries()) {
-        await api().uploadReport(patient!.id, f, others.length > 1 || imgs.length ? { ...meta, title: `${meta.title} (${i + 1 + (imgs.length ? 1 : 0)})` } : meta);
+      parts.push(...others);
+      const vids = others.filter(f => f.type.startsWith('video/')).length, pdfs = others.length - vids;
+      const what = [imgs.length > 1 ? t('{n} pages', { n: imgs.length }) : imgs.length ? t('1 photo') : '', vids ? t(vids === 1 ? '1 video' : '{n} videos', { n: vids }) : '', pdfs ? t(pdfs === 1 ? '1 PDF' : '{n} PDFs', { n: pdfs }) : ''].filter(Boolean).join(' · ');
+      if (parts.length === 1) {
+        setBusy(vids ? t('Uploading video… this can take a minute') : t('Uploading…'));
+        await api().uploadReport(patient!.id, parts[0], { ...meta, notes: [notes, imgs.length > 1 ? what : ''].filter(Boolean).join(' · ') || null });
+      } else {
+        await api().uploadReportGroup(patient!.id, parts, { ...meta, notes: [notes, what].filter(Boolean).join(' · ') }, i => setBusy(t('Uploading file {n} of {m}…', { n: i + 1, m: parts.length })));
       }
       toast('Report uploaded'); onDone();
     } catch (e) { toast((e as Error).message, 'err'); } finally { setBusy(false); }
@@ -168,7 +205,7 @@ function UploadForm({ onDone }: { onDone: () => void }) {
         <div>
           <div className="mb-2 flex items-baseline justify-between px-1">
             <span className="text-sm font-bold">{files.every(f => f.type.startsWith('image/')) ? t(files.length === 1 ? '{n} page' : '{n} pages', { n: files.length }) : t(files.length === 1 ? '{n} file' : '{n} files', { n: files.length })}</span>
-            {files.filter(f => f.type.startsWith('image/')).length > 1 && <span className="text-[0.75rem] text-slate-500">Photos are joined into one PDF</span>}
+            {files.length > 1 && <span className="text-[0.75rem] text-slate-500">{files.some(f => !f.type.startsWith('image/')) ? t('All saved together as one report') : t('Photos are joined into one PDF')}</span>}
           </div>
           <div className="grid grid-cols-3 gap-2">
             {files.map((f, i) => (

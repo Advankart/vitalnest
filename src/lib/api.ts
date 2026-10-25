@@ -67,6 +67,8 @@ export interface Api {
   addCustomFood(f: Omit<CustomFood, 'id'>): Promise<CustomFood>;
 
   uploadReport(patientId: string, file: File, meta: Partial<Report>): Promise<Report>;
+  /** One report with many files; onProgress(i) is called before each file is uploaded. */
+  uploadReportGroup(patientId: string, files: File[], meta: Partial<Report>, onProgress?: (i: number) => void): Promise<Report>;
   reportUrl(r: Report): Promise<string>;
   deleteReport(r: Report): Promise<void>;
   uploadMedPhoto(patientId: string, photo: Blob): Promise<string>;
@@ -171,13 +173,30 @@ function cloudApi(sb: SupabaseClient): Api {
         ...meta, patient_id: pid, file_path: path, file_name: file.name, mime_type: file.type, size_bytes: file.size,
       }).select().single()) as Report;
     },
+    async uploadReportGroup(pid, files, meta, onProgress) {
+      const att: { path: string; name: string; mime: string; size: number }[] = [];
+      try {
+        for (const [i, file] of files.entries()) {
+          onProgress?.(i);
+          const clean = file.name.replace(/[^\w.\-]+/g, '_').slice(-80);
+          const path = `${pid}/${Date.now()}-${i + 1}-${clean}`;
+          const up = await sb.storage.from('reports').upload(path, file, { contentType: file.type || undefined });
+          if (up.error) throw new Error(friendly(up.error.message));
+          att.push({ path, name: file.name, mime: file.type, size: file.size });
+        }
+      } catch (e) { if (att.length) await sb.storage.from('reports').remove(att.map(a => a.path)); throw e; }
+      return check(await sb.from('reports').insert({
+        ...meta, patient_id: pid, file_path: att[0].path, file_name: att[0].name, mime_type: att[0].mime,
+        size_bytes: att.reduce((n, a) => n + a.size, 0), attachments: att,
+      }).select().single()) as Report;
+    },
     async reportUrl(r) {
       const { data, error } = await sb.storage.from('reports').createSignedUrl(r.file_path, 60 * 30);
       if (error) throw new Error(friendly(error.message));
       return data.signedUrl;
     },
     async deleteReport(r) {
-      await sb.storage.from('reports').remove([r.file_path]);
+      await sb.storage.from('reports').remove([...new Set([r.file_path, ...(r.attachments ?? []).map(a => a.path)])]);
       check(await sb.from('reports').delete().eq('id', r.id));
     },
 
