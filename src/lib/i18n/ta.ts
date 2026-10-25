@@ -344,4 +344,7 @@ export const TA: Record<string, string> = {
   'Find dates & set reminders': 'தேதிகளைக் கண்டறிந்து நினைவூட்டல் அமை', 'Reminder set ✓': 'நினைவூட்டல் அமைந்தது ✓', 'Remind': 'நினைவூட்டு',
   'Review with {doctor}': '{doctor} அவர்களுடன் சந்திப்பு', 'Doctor review': 'மருத்துவர் சந்திப்பு', 'Next review: {date}': 'அடுத்த சந்திப்பு: {date}',
   'Set a reminder for this visit': 'இந்தச் சந்திப்புக்கு நினைவூட்டல் அமை', 'Next review & test dates with reminders': 'அடுத்த சந்திப்பு & பரிசோதனைத் தேதிகள், நினைவூட்டலுடன்', 'at {time}': '{time} மணிக்கு',
+  'Record video': 'வீடியோ பதிவு', 'Choose files / PDF / video': 'கோப்பு / PDF / வீடியோ தேர்ந்தெடு', '{n} file': '{n} கோப்பு', '{n} files': '{n} கோப்புகள்',
+  'Video is larger than 50 MB — record a shorter clip or trim it first': 'வீடியோ 50 MB-க்கு மேல் உள்ளது — சிறிய வீடியோ எடுங்கள் அல்லது முதலில் வெட்டுங்கள்',
+  'Uploading video… this can take a minute': 'வீடியோ பதிவேற்றுகிறது… ஒரு நிமிடம் ஆகலாம்',
 };

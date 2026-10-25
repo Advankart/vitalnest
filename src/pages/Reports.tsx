@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { t } from '../lib/i18n';
 import { useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Sparkles, Camera, ChevronLeft, ChevronRight, ExternalLink, FileImage, FileText, Trash2, Upload, X } from 'lucide-react';
+import { Sparkles, Camera, ChevronLeft, ChevronRight, ExternalLink, FileImage, FileText, FileVideo, Trash2, Upload, Video, X } from 'lucide-react';
 import { toJpegBlob } from '../lib/scan';
 import { ReportSummaryView } from '../components/ReportSummaryView';
 import { savedSummary } from '../lib/reportSummary';
@@ -52,7 +52,7 @@ export default function Reports() {
           {shown.map(r => (
             <button key={r.id} onClick={() => openReport(r)} className="card flex w-full items-center gap-3 p-4 text-left">
               <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-slate-100 text-slate-600 dark:bg-white/5 dark:text-slate-300">
-                {r.mime_type?.startsWith('image/') ? <FileImage className="h-6 w-6" /> : <FileText className="h-6 w-6" />}
+                {r.mime_type?.startsWith('image/') ? <FileImage className="h-6 w-6" /> : r.mime_type?.startsWith('video/') ? <FileVideo className="h-6 w-6 text-sky-600" /> : <FileText className="h-6 w-6" />}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="truncate font-semibold">{r.title}</div>
@@ -72,6 +72,7 @@ export default function Reports() {
         {view && <div className="space-y-4">
           <ReportSummaryView key={view.r.id} report={view.r} onSaved={savedR} />
           {view.r.mime_type?.startsWith('image/') && view.url && <img src={view.url} alt={view.r.title} className="w-full rounded-2xl" />}
+          {view.r.mime_type?.startsWith('video/') && view.url && <video src={view.url} controls playsInline preload="metadata" className="max-h-[60vh] w-full rounded-2xl bg-black" />}
           <div className="flex gap-2">
             <Button variant="soft" className="flex-1" disabled={!view.url} onClick={() => openOriginal(view.url)}><ExternalLink className="h-4 w-4" />{view.r.mime_type?.startsWith('image/') ? 'Open full size' : 'Open original report'}</Button>
             {canEdit && <Button variant="danger" onClick={() => del(view.r)}><Trash2 className="h-4 w-4" /></Button>}
@@ -91,17 +92,18 @@ function UploadForm({ onDone }: { onDone: () => void }) {
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [notes, setNotes] = useState('');
   const [busy, setBusy] = useState<string | false>(false);
-  const fileRef = useRef<HTMLInputElement>(null), camRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null), camRef = useRef<HTMLInputElement>(null), vidRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const urls = files.map(f => (f.type.startsWith('image/') ? URL.createObjectURL(f) : ''));
+    const urls = files.map(f => (f.type.startsWith('image/') || f.type.startsWith('video/') ? URL.createObjectURL(f) : ''));
     setPreviews(urls);
     return () => urls.forEach(u => u && URL.revokeObjectURL(u));
   }, [files]);
 
   const add = (list?: FileList | null) => {
     const picked = [...(list ?? [])].filter(f => {
-      if (f.size > 20 * 1024 * 1024) { toast('File is larger than 20 MB', 'err'); return false; }
+      const isVideo = f.type.startsWith('video/');
+      if (f.size > (isVideo ? 50 : 20) * 1024 * 1024) { toast(isVideo ? t('Video is larger than 50 MB — record a shorter clip or trim it first') : t('File is larger than 20 MB'), 'err'); return false; }
       return true;
     });
     if (!picked.length) return;
@@ -131,7 +133,7 @@ function UploadForm({ onDone }: { onDone: () => void }) {
 
   async function upload() {
     if (!files.length) return;
-    setBusy(t('Uploading…'));
+    setBusy(files.some(f => f.type.startsWith('video/')) ? t('Uploading video… this can take a minute') : t('Uploading…'));
     try {
       const meta = { title: title || files[0].name, category: cat, report_date: date, notes: notes || null };
       const imgs = files.filter(f => f.type.startsWith('image/')), others = files.filter(f => !f.type.startsWith('image/'));
@@ -151,25 +153,27 @@ function UploadForm({ onDone }: { onDone: () => void }) {
     } catch (e) { toast((e as Error).message, 'err'); } finally { setBusy(false); }
   }
 
-  const tile = 'flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-slate-200 p-5 text-sm font-semibold text-slate-600 dark:border-white/10 dark:text-slate-300';
+  const tile = 'flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-slate-200 px-2 py-4 text-center text-[0.8125rem] font-semibold text-slate-600 dark:border-white/10 dark:text-slate-300';
   return (
     <div className="space-y-4">
-      <input ref={fileRef} type="file" accept="image/*,application/pdf" multiple className="hidden" onChange={e => { add(e.target.files); e.target.value = ''; }} />
+      <input ref={fileRef} type="file" accept="image/*,application/pdf,video/*" multiple className="hidden" onChange={e => { add(e.target.files); e.target.value = ''; }} />
       <input ref={camRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { add(e.target.files); e.target.value = ''; }} />
-      <div className="grid grid-cols-2 gap-3">
+      <input ref={vidRef} type="file" accept="video/*" capture="environment" className="hidden" onChange={e => { add(e.target.files); e.target.value = ''; }} />
+      <div className="grid grid-cols-3 gap-2">
         <button onClick={() => camRef.current?.click()} className={tile}><Camera className="h-7 w-7 text-brand-600" />{files.length ? 'Take another photo' : 'Take photo'}</button>
-        <button onClick={() => fileRef.current?.click()} className={tile}><Upload className="h-7 w-7 text-brand-600" />{files.length ? 'Add more files' : 'Choose files / PDF'}</button>
+        <button onClick={() => vidRef.current?.click()} className={tile}><Video className="h-7 w-7 text-brand-600" />Record video</button>
+        <button onClick={() => fileRef.current?.click()} className={tile}><Upload className="h-7 w-7 text-brand-600" />{files.length ? 'Add more files' : 'Choose files / PDF / video'}</button>
       </div>
       {files.length > 0 && (
         <div>
           <div className="mb-2 flex items-baseline justify-between px-1">
-            <span className="text-sm font-bold">{t(files.length === 1 ? '{n} page' : '{n} pages', { n: files.length })}</span>
+            <span className="text-sm font-bold">{files.every(f => f.type.startsWith('image/')) ? t(files.length === 1 ? '{n} page' : '{n} pages', { n: files.length }) : t(files.length === 1 ? '{n} file' : '{n} files', { n: files.length })}</span>
             {files.filter(f => f.type.startsWith('image/')).length > 1 && <span className="text-[0.75rem] text-slate-500">Photos are joined into one PDF</span>}
           </div>
           <div className="grid grid-cols-3 gap-2">
             {files.map((f, i) => (
               <div key={i} className="relative overflow-hidden rounded-2xl bg-slate-100 ring-1 ring-slate-900/5 dark:bg-white/5">
-                {previews[i] ? <img src={previews[i]} alt="" className="aspect-[3/4] w-full object-cover" /> : <div className="grid aspect-[3/4] place-items-center p-2 text-center text-[0.6875rem] text-slate-500"><FileText className="mx-auto h-7 w-7 text-red-500" />{f.name}</div>}
+                {previews[i] && f.type.startsWith('video/') ? <div className="relative"><video src={previews[i]} muted playsInline preload="metadata" className="aspect-[3/4] w-full bg-black object-cover" /><Video className="absolute bottom-2 left-1/2 h-6 w-6 -translate-x-1/2 text-white drop-shadow" /></div> : previews[i] ? <img src={previews[i]} alt="" className="aspect-[3/4] w-full object-cover" /> : <div className="grid aspect-[3/4] place-items-center p-2 text-center text-[0.6875rem] text-slate-500"><FileText className="mx-auto h-7 w-7 text-red-500" />{f.name}</div>}
                 <span className="absolute left-1.5 top-1.5 rounded-full bg-black/60 px-2 text-[0.6875rem] font-bold text-white">{i + 1}</span>
                 <button onClick={() => removeAt(i)} aria-label="Remove" className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-black/60 text-white"><X className="h-4 w-4" /></button>
                 {files.length > 1 && (
